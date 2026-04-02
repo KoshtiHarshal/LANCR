@@ -8,8 +8,7 @@ class ApiService {
   ApiService()
       : _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://10.0.2.2:5000/api/v1', // Android emulator
-      // For physical device: replace with your PC IP, e.g. http://192.168.1.5:5000/api/v1
+      baseUrl: 'http://10.0.2.2:5000/api/v1',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ),
@@ -18,7 +17,7 @@ class ApiService {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _storage.read(key: 'auth_token');
-          if (token != null) {
+          if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);

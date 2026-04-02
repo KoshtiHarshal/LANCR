@@ -9,17 +9,21 @@ AsyncNotifierProvider<AuthNotifier, User?>(AuthNotifier.new);
 class AuthNotifier extends AsyncNotifier<User?> {
   final _storage = const FlutterSecureStorage();
 
+  void setUser(User user) {
+    state = AsyncData(user);
+  }
+
   @override
   Future<User?> build() async {
-    // On app start, try to fetch current user
     final token = await _storage.read(key: 'auth_token');
     if (token == null) return null;
 
     try {
       final api = ref.read(apiServiceProvider);
       final res = await api.get('/auth/me');
-      return User.fromJson(res.data);
+      return User.fromJson(res.data['user']);
     } catch (_) {
+      await _storage.delete(key: 'auth_token');
       return null;
     }
   }
