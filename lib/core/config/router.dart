@@ -6,6 +6,7 @@ import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
 import '../../features/onboarding/presentation/role_selection_page.dart';
+import '../../features/profiles/presentation/edit_profile_page.dart';
 
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
@@ -53,6 +54,10 @@ class HomePage extends ConsumerWidget {
         title: Text('Lancr Home (${user?.role ?? ''})'),
         actions: [
           IconButton(
+            onPressed: () => context.go('/profile/edit'),
+            icon: const Icon(Icons.person),
+          ),
+          IconButton(
             onPressed: () {
               ref.read(authProvider.notifier).logout();
               context.go('/auth/login');
@@ -91,6 +96,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        builder: (context, state) => const EditProfilePage(),
       ),
     ],
   );
