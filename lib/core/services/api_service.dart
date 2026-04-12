@@ -8,9 +8,9 @@ class ApiService {
   ApiService()
       : _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://10.0.2.2:5000/api/v1',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      baseUrl: 'http://192.168.1.10:5000/api/v1',
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 20),
     ),
   ) {
     _dio.interceptors.add(
