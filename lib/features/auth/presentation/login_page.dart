@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -59,8 +60,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     labelText: 'Password',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon:
-                      Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(
+                        _obscure ? Icons.visibility : Icons.visibility_off,
+                      ),
                       onPressed: () {
                         setState(() => _obscure = !_obscure);
                       },
@@ -77,7 +79,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   child: ElevatedButton(
                     onPressed: () async {
                       if (!_formKey.currentState!.validate()) return;
-                      await ref.read(authProvider.notifier).login(
+
+                      await ref
+                          .read(authProvider.notifier)
+                          .login(
                         _emailCtrl.text.trim(),
                         _passwordCtrl.text.trim(),
                       );

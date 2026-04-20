@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand
-  static const Color primary = Color(0xFF00A19B); // THE MINT
-  static const Color background = Color(0xFFE4DDD3); // ICELATTE
-
-  // Neutrals
-  static const Color surface = Colors.white;
-  static const Color border = Color(0xFFCCC3B6);
-  static const Color textPrimary = Color(0xFF1F2933);
-  static const Color textSecondary = Color(0xFF6B7280);
-
-  // Status
-  static const Color success = Color(0xFF16A34A);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color error = Color(0xFFDC2626);
+  static const primary       = Color(0xFF00A19B);
+  static const primaryLight  = Color(0xFFE0F5F4);
+  static const background    = Color(0xFFEDE8E1);
+  static const surface       = Color(0xFFF5F1EC);
+  static const textPrimary   = Color(0xFF1A1A1A);
+  static const textSecondary = Color(0xFF7A7470);
+  static const shadow        = Color(0xFFD6CFC6);
+  static const white         = Color(0xFFFFFFFF);
 }

@@ -6,8 +6,7 @@ import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
 import '../../features/onboarding/presentation/role_selection_page.dart';
-import '../../features/profiles/presentation/edit_profile_page.dart';
-import '../../features/projects/presentation/freelancer_home_page.dart';
+import '../presentation/main_shell_page.dart';
 
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
@@ -96,11 +95,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/home',
-        builder: (context, state) => const FreelancerHomePage(),
-      ),
-      GoRoute(
-        path: '/profile/edit',
-        builder: (context, state) => const EditProfilePage(),
+        builder: (context, state) => const MainShellPage(),
       ),
     ],
   );

@@ -1,102 +1,79 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
-  static ThemeData light() {
-    final baseTextTheme = GoogleFonts.arefRuqaaTextTheme();
-
-    final colorScheme = ColorScheme(
-      brightness: Brightness.light,
+  static ThemeData get theme => ThemeData(
+    useMaterial3: true,
+    scaffoldBackgroundColor: AppColors.background,
+    colorScheme: ColorScheme.light(
       primary: AppColors.primary,
-      onPrimary: Colors.white,
-      secondary: AppColors.primary,
-      onSecondary: Colors.white,
-      error: AppColors.error,
-      onError: Colors.white,
-      background: AppColors.background,
-      onBackground: AppColors.textPrimary,
       surface: AppColors.surface,
+      onPrimary: AppColors.white,
       onSurface: AppColors.textPrimary,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.background,
-      textTheme: baseTextTheme,
-      appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.textPrimary,
+    ),
+    fontFamily: 'Inter',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.background,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        color: AppColors.primary,
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+      ),
+      iconTheme: IconThemeData(color: AppColors.textPrimary),
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.shadow, width: 1),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        shape: StadiumBorder(),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        textStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         elevation: 0,
-        titleTextStyle: baseTextTheme.titleLarge?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.bold,
-        ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
-        ),
-        labelStyle: baseTextTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
-        ),
-        hintStyle: baseTextTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary.withOpacity(0.7),
-        ),
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        side: BorderSide(color: AppColors.primary, width: 1.5),
+        shape: StadiumBorder(),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        textStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          textStyle: baseTextTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.white,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: AppColors.textSecondary,
+      type: BottomNavigationBarType.fixed,
+      elevation: 0,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: AppColors.shadow),
       ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          textStyle: baseTextTheme.labelLarge,
-        ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: AppColors.shadow),
       ),
-      cardTheme: CardThemeData(
-        color: AppColors.surface,
-        elevation: 0,
-        margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border),
-        ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: AppColors.primary, width: 2),
       ),
-      chipTheme: ChipThemeData(
-        backgroundColor: AppColors.background,
-        selectedColor: AppColors.primary.withOpacity(0.15),
-        disabledColor: AppColors.border,
-        labelStyle: baseTextTheme.bodyMedium!,
-        secondaryLabelStyle: baseTextTheme.bodyMedium!
-            .copyWith(color: AppColors.primary),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-          side: const BorderSide(color: AppColors.border),
-        ),
-      ),
-    );
-  }
+      labelStyle: TextStyle(color: AppColors.textSecondary),
+    ),
+  );
 }

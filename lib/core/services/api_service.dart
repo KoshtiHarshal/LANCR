@@ -8,11 +8,14 @@ class ApiService {
   ApiService()
       : _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.1.10:5000/api/v1',
+      baseUrl: 'http://192.168.1.6:5000/api/v1', // YOUR PC IP
       connectTimeout: const Duration(seconds: 20),
       receiveTimeout: const Duration(seconds: 20),
     ),
   ) {
+    // Debug log when ApiService is created
+    print('ApiService baseUrl = ${_dio.options.baseUrl}');
+
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -20,7 +23,19 @@ class ApiService {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          print('DIO REQUEST: ${options.method} ${options.uri}');
           return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          print(
+            'DIO RESPONSE: ${response.statusCode} ${response.requestOptions.uri}',
+          );
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          print('DIO ERROR: ${error.type} ${error.message}');
+          print('DIO ERROR URL: ${error.requestOptions.uri}');
+          return handler.next(error);
         },
       ),
     );

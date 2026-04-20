@@ -1,157 +1,158 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../core/models/user.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../../core/theme/app_colors.dart';
 
 class FreelancerHomePage extends ConsumerWidget {
   const FreelancerHomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(authProvider);
-
-    return userAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => Scaffold(
-        body: Center(child: Text('Error: $e')),
-      ),
-      data: (user) {
-        if (user == null) {
-          // Should not happen if router checks auth
-          return const Scaffold(
-            body: Center(child: Text('Not logged in')),
-          );
-        }
-        return _FreelancerHomeContent(user: user);
-      },
-    );
-  }
-}
-
-class _FreelancerHomeContent extends StatelessWidget {
-  final User user;
-  const _FreelancerHomeContent({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final user = ref.watch(authProvider).value;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Lancr'),
         actions: [
-          IconButton(
-            onPressed: () => context.go('/profile/edit'),
-            icon: const Icon(Icons.person),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.primaryLight,
+              child: const Icon(Icons.person_outline,
+                  color: AppColors.primary, size: 20),
+            ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Text(
-              'Welcome back, ${user.profile.name ?? user.email}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              user.profile.headline?.isNotEmpty == true
-                  ? user.profile.headline!
-                  : 'Set a headline to attract clients',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
 
-            // Stats row (placeholder values for now)
+            // ✅ HERO GREETING CARD — paste it here
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.white24,
+                    child: const Icon(Icons.person, color: Colors.white),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hi, ${user?.email ?? ''}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Add a headline to stand out →',
+                          style: TextStyle(
+                              color: Color(0xFFCCEEEC), fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Overview section
+            const Text('Overview',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _StatCard(icon: Icons.work_outline, value: '0', label: 'Active\nProjects'),
+                const SizedBox(width: 8),
+                _StatCard(icon: Icons.send_outlined, value: '0', label: 'Proposals\nSent'),
+                const SizedBox(width: 8),
+                _StatCard(icon: Icons.account_balance_wallet_outlined, value: '\$0', label: 'Earnings'),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Quick Actions
+            const Text('Quick Actions',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: _StatCard(
-                    label: 'Active projects',
-                    value: '${user.profileCompleted ? 0 : 0}',
+                  child: ElevatedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.search, size: 18),
+                    label: const Text('Browse Projects'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: _StatCard(
-                    label: 'Proposals sent',
-                    value: '0',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _StatCard(
-                    label: 'Earnings',
-                    value: '\$0',
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Update Profile'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
 
-            // Skills
-            if (user.profile.skills.isNotEmpty) ...[
-              Text(
-                'Skills',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
+            const SizedBox(height: 24),
+
+            // Upcoming
+            const Text('Upcoming',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.primaryLight,
+                      child: const Icon(Icons.notifications_outlined,
+                          color: AppColors.primary),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Text(
+                        'No upcoming deadlines. Start by browsing projects that match your skills.',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 13),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: user.profile.skills
-                    .map(
-                      (s) => Chip(
-                    label: Text(s),
-                  ),
-                )
-                    .toList(),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Quick actions
-            Text(
-              'Quick actions',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: navigate to browse projects list
-                    },
-                    icon: const Icon(Icons.search),
-                    label: const Text('Browse projects'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go('/profile/edit'),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit profile'),
-                  ),
-                ),
-              ],
-            ),
+
           ],
         ),
       ),
@@ -160,33 +161,38 @@ class _FreelancerHomeContent extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  final String label;
+  final IconData icon;
   final String value;
-  const _StatCard({required this.label, required this.value});
+  final String label;
+
+  const _StatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: AppColors.primary, size: 22),
+              const SizedBox(height: 10),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+              const SizedBox(height: 4),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary)),
+            ],
+          ),
         ),
       ),
     );

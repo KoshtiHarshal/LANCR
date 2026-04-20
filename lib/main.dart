@@ -20,9 +20,9 @@ class LancrApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'Lancr',
+      theme: AppTheme.theme,
+      routerConfig: ref.watch(routerProvider),
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      routerConfig: router,
     );
   }
 }
