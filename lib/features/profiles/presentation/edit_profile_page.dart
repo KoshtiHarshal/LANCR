@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/models/user.dart';
-import '../../../core/services/api_providers.dart';
+
 import '../../auth/presentation/auth_provider.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../main.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -14,6 +15,7 @@ class EditProfilePage extends ConsumerStatefulWidget {
 
 class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
+
   late TextEditingController _nameCtrl;
   late TextEditingController _headlineCtrl;
   late TextEditingController _companyCtrl;
@@ -25,26 +27,57 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late TextEditingController _linkedinCtrl;
 
   bool _saving = false;
+  bool _isFreelancer = true;
+  Map<String, dynamic>? _existingProfile;
 
   @override
   void initState() {
     super.initState();
-    final user = ref.read(authProvider).value;
-    final p = user?.profile;
+    // Initialize empty controllers first
+    _nameCtrl = TextEditingController();
+    _headlineCtrl = TextEditingController();
+    _companyCtrl = TextEditingController();
+    _locationCtrl = TextEditingController();
+    _bioCtrl = TextEditingController();
+    _skillsCtrl = TextEditingController();
+    _yearsCtrl = TextEditingController();
+    _portfolioCtrl = TextEditingController();
+    _linkedinCtrl = TextEditingController();
 
-    _nameCtrl = TextEditingController(text: p?.name ?? '');
-    _headlineCtrl = TextEditingController(text: p?.headline ?? '');
-    _companyCtrl = TextEditingController(text: p?.company ?? '');
-    _locationCtrl = TextEditingController(text: p?.location ?? '');
-    _bioCtrl = TextEditingController(text: p?.bio ?? '');
-    _skillsCtrl = TextEditingController(
-      text: (p?.skills ?? []).join(', '),
-    );
-    _yearsCtrl = TextEditingController(
-      text: p?.experienceYears?.toString() ?? '',
-    );
-    _portfolioCtrl = TextEditingController(text: p?.portfolioUrl ?? '');
-    _linkedinCtrl = TextEditingController(text: p?.linkedinUrl ?? '');
+    // Then load existing profile from Supabase
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final data = await supabase
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .single();
+
+      if (!mounted) return;
+      setState(() {
+        _existingProfile = data;
+        _isFreelancer = (data['role'] ?? 'freelancer') == 'freelancer';
+
+        _nameCtrl.text = data['name'] ?? '';
+        _headlineCtrl.text = data['headline'] ?? '';
+        _companyCtrl.text = data['company'] ?? '';
+        _locationCtrl.text = data['location'] ?? '';
+        _bioCtrl.text = data['bio'] ?? '';
+        _skillsCtrl.text =
+            (data['skills'] as List<dynamic>? ?? []).join(', ');
+        _yearsCtrl.text = data['experience_years']?.toString() ?? '';
+        _portfolioCtrl.text = data['portfolio_url'] ?? '';
+        _linkedinCtrl.text = data['linkedin_url'] ?? '';
+      });
+    } catch (_) {
+      // Profile doesn't exist yet — use empty controllers
+    }
   }
 
   @override
@@ -63,11 +96,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _saving = true);
+
     try {
-      final user = ref.read(authProvider).value!;
-      final isFreelancer = user.role == 'freelancer';
+      final user = supabase.auth.currentUser;
+      if (user == null) throw Exception('Not logged in');
 
       final skills = _skillsCtrl.text
           .split(',')
@@ -75,27 +108,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           .where((s) => s.isNotEmpty)
           .toList();
 
-      final profile = {
+      await supabase.from('profiles').update({
         'name': _nameCtrl.text.trim(),
         'headline': _headlineCtrl.text.trim(),
-        'company': isFreelancer ? null : _companyCtrl.text.trim(),
+        'company': _isFreelancer ? null : _companyCtrl.text.trim(),
         'location': _locationCtrl.text.trim(),
         'bio': _bioCtrl.text.trim(),
-        'skills': isFreelancer ? skills : [],
-        'experienceYears':
-        isFreelancer && _yearsCtrl.text.isNotEmpty ? int.parse(_yearsCtrl.text) : null,
-        'portfolioUrl': _portfolioCtrl.text.trim(),
-        'linkedinUrl': _linkedinCtrl.text.trim(),
-      };
-
-      final api = ref.read(apiServiceProvider);
-      final res = await api.put('/users/me/profile', data: {
-        'profile': profile,
-        'profileCompleted': true,
-      });
-
-      final updatedUser = User.fromJson(res.data['user']);
-      ref.read(authProvider.notifier).setUser(updatedUser);
+        'skills': _isFreelancer ? skills : [],
+        'experience_years': _isFreelancer && _yearsCtrl.text.isNotEmpty
+            ? int.tryParse(_yearsCtrl.text)
+            : null,
+        'portfolio_url': _portfolioCtrl.text.trim(),
+        'linkedin_url': _linkedinCtrl.text.trim(),
+        'profile_completed': true,
+      }).eq('id', user.id);
 
       if (!mounted) return;
       context.go('/home');
@@ -111,25 +137,24 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider).value;
-    final isFreelancer = user?.role == 'freelancer';
-
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Edit Profile')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
                 controller: _nameCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Name',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
                 validator: (v) =>
-                (v == null || v.isEmpty) ? 'Enter name' : null,
+                (v == null || v.isEmpty) ? 'Enter your name' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -137,41 +162,38 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 decoration: const InputDecoration(
                   labelText: 'Headline',
                   hintText: 'e.g. Flutter & MERN Stack Developer',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.title_outlined),
                 ),
                 validator: (v) =>
-                (v == null || v.isEmpty) ? 'Enter headline' : null,
+                (v == null || v.isEmpty) ? 'Enter a headline' : null,
               ),
               const SizedBox(height: 16),
-              if (!isFreelancer)
-                Column(
-                  children: [
-                    TextFormField(
-                      controller: _companyCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Company',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+              if (!_isFreelancer) ...[
+                TextFormField(
+                  controller: _companyCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Company',
+                    prefixIcon: Icon(Icons.business_outlined),
+                  ),
                 ),
+                const SizedBox(height: 16),
+              ],
               TextFormField(
                 controller: _locationCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Location',
                   hintText: 'City, Country',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on_outlined),
                 ),
               ),
               const SizedBox(height: 16),
-              if (isFreelancer) ...[
+              if (_isFreelancer) ...[
                 TextFormField(
                   controller: _skillsCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Skills',
                     hintText: 'Flutter, Node.js, MongoDB',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.code_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -179,8 +201,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   controller: _yearsCtrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Years of experience',
-                    border: OutlineInputBorder(),
+                    labelText: 'Years of Experience',
+                    prefixIcon: Icon(Icons.bar_chart_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -190,33 +212,40 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 maxLines: 3,
                 decoration: const InputDecoration(
                   labelText: 'Bio',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.notes_outlined),
+                  alignLabelWithHint: true,
                 ),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _portfolioCtrl,
+                keyboardType: TextInputType.url,
                 decoration: const InputDecoration(
                   labelText: 'Portfolio URL',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.link_outlined),
                 ),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _linkedinCtrl,
+                keyboardType: TextInputType.url,
                 decoration: const InputDecoration(
                   labelText: 'LinkedIn URL',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person_pin_outlined),
                 ),
               ),
-              const SizedBox(height: 24),
-              _saving
-                  ? const CircularProgressIndicator()
-                  : SizedBox(
+              const SizedBox(height: 32),
+              SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: _saving
+                    ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
+                )
+                    : ElevatedButton(
                   onPressed: _saveProfile,
-                  child: const Text('Save profile'),
+                  child: const Text('Save Profile'),
                 ),
               ),
             ],

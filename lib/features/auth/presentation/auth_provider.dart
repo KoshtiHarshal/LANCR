@@ -1,60 +1,37 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/models/user.dart';
-import '../../../core/services/api_providers.dart';
+import '../../../main.dart'; // for global `supabase` accessor
 
-/// Global auth state: current [User] or null.
-final authProvider =
-AsyncNotifierProvider<AuthNotifier, User?>(AuthNotifier.new);
+// ─────────────────────────────────────────────
+// Stream-based provider — auto-updates on login/logout
+// Used in router.dart SplashPage to redirect users
+// ─────────────────────────────────────────────
+final authProvider = StreamProvider<User?>((ref) {
+  return supabase.auth.onAuthStateChange
+      .map((event) => event.session?.user);
+});
 
+// ─────────────────────────────────────────────
+// Notifier — handles login / register / logout actions
+// ─────────────────────────────────────────────
 class AuthNotifier extends AsyncNotifier<User?> {
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-
-  void setUser(User user) {
-    state = AsyncData(user);
-  }
-
   @override
   Future<User?> build() async {
-    // Called when ProviderScope is created (app start)
-    final token = await _storage.read(key: 'auth_token');
-    if (token == null) {
-      print('AUTH: no token on startup');
-      return null;
-    }
-
-    try {
-      print('AUTH: fetching /auth/me on startup');
-      final api = ref.read(apiServiceProvider);
-      final res = await api.get('/auth/me');
-      final user = User.fromJson(res.data['user']);
-      print('AUTH: /auth/me success for ${user.email}');
-      return user;
-    } catch (e) {
-      print('AUTH: /auth/me failed: $e, clearing token');
-      await _storage.delete(key: 'auth_token');
-      return null;
-    }
+    // On app start, return current session user (if any)
+    return supabase.auth.currentUser;
   }
 
   Future<void> login(String email, String password) async {
-    print('AUTH: login called with $email');
+    print('AUTH: login called for $email');
     state = const AsyncLoading();
     try {
-      final api = ref.read(apiServiceProvider);
-      print('AUTH: calling POST /auth/login');
-      final res = await api.post('/auth/login', data: {
-        'email': email,
-        'password': password,
-      });
-
-      final token = res.data['token'] as String;
-      await _storage.write(key: 'auth_token', value: token);
-
-      final user = User.fromJson(res.data['user']);
-      print('AUTH: login success for ${user.email}');
-      state = AsyncData(user);
+      final res = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      print('AUTH: login success for ${res.user?.email}');
+      state = AsyncData(res.user);
     } catch (e, st) {
       print('AUTH: login error = $e');
       state = AsyncError(e, st);
@@ -62,23 +39,30 @@ class AuthNotifier extends AsyncNotifier<User?> {
   }
 
   Future<void> register(String email, String password, String role) async {
-    print('AUTH: register called with $email / $role');
+    print('AUTH: register called for $email / $role');
     state = const AsyncLoading();
     try {
-      final api = ref.read(apiServiceProvider);
-      print('AUTH: calling POST /auth/register');
-      final res = await api.post('/auth/register', data: {
-        'email': email,
-        'password': password,
-        'role': role,
-      });
+      final res = await supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
 
-      final token = res.data['token'] as String;
-      await _storage.write(key: 'auth_token', value: token);
-
-      final user = User.fromJson(res.data['user']);
-      print('AUTH: register success for ${user.email}');
-      state = AsyncData(user);
+      final user = res.user;
+      if (user != null) {
+        // Insert profile row into our profiles table
+        await supabase.from('profiles').insert({
+          'id': user.id,
+          'email': email,
+          'role': role,
+          'profile_completed': false,
+        });
+        print('AUTH: register success for ${user.email}');
+        state = AsyncData(user);
+      } else {
+        // Supabase email confirmation enabled — user is null until confirmed
+        print('AUTH: register success — awaiting email confirmation');
+        state = const AsyncData(null);
+      }
     } catch (e, st) {
       print('AUTH: register error = $e');
       state = AsyncError(e, st);
@@ -87,7 +71,10 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
   Future<void> logout() async {
     print('AUTH: logout');
-    await _storage.delete(key: 'auth_token');
+    await supabase.auth.signOut();
     state = const AsyncData(null);
   }
 }
+
+final authNotifierProvider =
+AsyncNotifierProvider<AuthNotifier, User?>(() => AuthNotifier());

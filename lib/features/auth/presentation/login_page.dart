@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'auth_provider.dart';
+import '../../../core/theme/app_colors.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -16,6 +17,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,93 +26,139 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+
+    try {
+      await ref.read(authNotifierProvider.notifier).login(
+        _emailCtrl.text.trim(),
+        _passwordCtrl.text.trim(),
+      );
+
+      final state = ref.read(authNotifierProvider);
+      if (state.hasValue && state.value != null) {
+        if (mounted) context.go('/home');
+      } else if (state.hasError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.error.toString()),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                const SizedBox(height: 40),
+
+                // Logo / Title
+                Text(
                   'Lancr',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                    letterSpacing: -1,
+                  ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                Text(
+                  'Welcome back 👋',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Sign in to continue',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Email
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Enter email' : null,
+                  (v == null || v.isEmpty) ? 'Enter your email' : null,
                 ),
                 const SizedBox(height: 16),
+
+                // Password
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscure,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscure ? Icons.visibility : Icons.visibility_off,
+                        _obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
                       ),
-                      onPressed: () {
-                        setState(() => _obscure = !_obscure);
-                      },
+                      onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
                   validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Enter password' : null,
+                  (v == null || v.isEmpty) ? 'Enter your password' : null,
                 ),
-                const SizedBox(height: 24),
-                authState.isLoading
-                    ? const CircularProgressIndicator()
-                    : SizedBox(
+
+                const SizedBox(height: 32),
+
+                // Sign in button
+                SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (!_formKey.currentState!.validate()) return;
-
-                      await ref
-                          .read(authProvider.notifier)
-                          .login(
-                        _emailCtrl.text.trim(),
-                        _passwordCtrl.text.trim(),
-                      );
-
-                      final newState = ref.read(authProvider);
-                      if (newState.hasValue && newState.value != null) {
-                        if (context.mounted) {
-                          context.go('/home');
-                        }
-                      } else if (newState.hasError) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                newState.error.toString(),
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    },
+                  child: _isLoading
+                      ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  )
+                      : ElevatedButton(
+                    onPressed: _submit,
                     child: const Text('Sign in'),
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => context.go('/auth/register'),
-                  child: const Text('Create a new account'),
+
+                const SizedBox(height: 20),
+
+                // Register link
+                Center(
+                  child: TextButton(
+                    onPressed: () => context.go('/auth/register'),
+                    child: const Text(
+                      "Don't have an account? Sign up",
+                      style: TextStyle(color: AppColors.primary),
+                    ),
+                  ),
                 ),
               ],
             ),

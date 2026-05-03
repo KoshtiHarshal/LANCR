@@ -1,7 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../auth/presentation/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../main.dart';
+
+// Fetches profile from Supabase profiles table
+final profileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  final user = supabase.auth.currentUser;
+  if (user == null) return null;
+
+  try {
+    final data = await supabase
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .single();
+    return data;
+  } catch (_) {
+    return null;
+  }
+});
 
 class FreelancerHomePage extends ConsumerWidget {
   const FreelancerHomePage({super.key});
@@ -9,6 +29,7 @@ class FreelancerHomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).value;
+    final profileAsync = ref.watch(profileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -17,11 +38,16 @@ class FreelancerHomePage extends ConsumerWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.primaryLight,
-              child: const Icon(Icons.person_outline,
-                  color: AppColors.primary, size: 20),
+            child: GestureDetector(
+              onTap: () {
+                // TODO: navigate to profile
+              },
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primaryLight,
+                child: Icon(Icons.person_outline,
+                    color: AppColors.primary, size: 20),
+              ),
             ),
           ),
         ],
@@ -32,7 +58,7 @@ class FreelancerHomePage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ✅ HERO GREETING CARD — paste it here
+            // ── Hero Greeting Card ──────────────────────
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -42,10 +68,10 @@ class FreelancerHomePage extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 24,
                     backgroundColor: Colors.white24,
-                    child: const Icon(Icons.person, color: Colors.white),
+                    child: Icon(Icons.person, color: Colors.white),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -59,12 +85,33 @@ class FreelancerHomePage extends ConsumerWidget {
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Add a headline to stand out →',
-                          style: TextStyle(
-                              color: Color(0xFFCCEEEC), fontSize: 13),
+                        profileAsync.when(
+                          data: (profile) {
+                            final headline = profile?['headline'];
+                            return Text(
+                              (headline != null &&
+                                  headline.toString().isNotEmpty)
+                                  ? headline
+                                  : 'Add a headline to stand out →',
+                              style: const TextStyle(
+                                color: Color(0xFFCCEEEC),
+                                fontSize: 13,
+                              ),
+                            );
+                          },
+                          loading: () => const Text(
+                            'Loading...',
+                            style: TextStyle(
+                                color: Color(0xFFCCEEEC), fontSize: 13),
+                          ),
+                          error: (e, s) => const Text(
+                            'Add a headline to stand out →',
+                            style: TextStyle(
+                                color: Color(0xFFCCEEEC), fontSize: 13),
+                          ),
                         ),
                       ],
                     ),
@@ -75,31 +122,49 @@ class FreelancerHomePage extends ConsumerWidget {
 
             const SizedBox(height: 24),
 
-            // Overview section
-            const Text('Overview',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary)),
+            // ── Overview ────────────────────────────────
+            const Text(
+              'Overview',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
             const SizedBox(height: 12),
-            Row(
+            const Row(
               children: [
-                _StatCard(icon: Icons.work_outline, value: '0', label: 'Active\nProjects'),
-                const SizedBox(width: 8),
-                _StatCard(icon: Icons.send_outlined, value: '0', label: 'Proposals\nSent'),
-                const SizedBox(width: 8),
-                _StatCard(icon: Icons.account_balance_wallet_outlined, value: '\$0', label: 'Earnings'),
+                StatCard(
+                  icon: Icons.work_outline,
+                  value: '0',
+                  label: 'Active\nProjects',
+                ),
+                SizedBox(width: 8),
+                StatCard(
+                  icon: Icons.send_outlined,
+                  value: '0',
+                  label: 'Proposals\nSent',
+                ),
+                SizedBox(width: 8),
+                StatCard(
+                  icon: Icons.account_balance_wallet_outlined,
+                  value: '\$0',
+                  label: 'Earnings',
+                ),
               ],
             ),
 
             const SizedBox(height: 24),
 
-            // Quick Actions
-            const Text('Quick Actions',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary)),
+            // ── Quick Actions ────────────────────────────
+            const Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -123,29 +188,36 @@ class FreelancerHomePage extends ConsumerWidget {
 
             const SizedBox(height: 24),
 
-            // Upcoming
-            const Text('Upcoming',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary)),
+            // ── Upcoming ─────────────────────────────────
+            const Text(
+              'Upcoming',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
             const SizedBox(height: 12),
-            Card(
+            const Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Row(
                   children: [
                     CircleAvatar(
                       backgroundColor: AppColors.primaryLight,
-                      child: const Icon(Icons.notifications_outlined,
-                          color: AppColors.primary),
+                      child: Icon(
+                        Icons.notifications_outlined,
+                        color: AppColors.primary,
+                      ),
                     ),
-                    const SizedBox(width: 14),
-                    const Expanded(
+                    SizedBox(width: 14),
+                    Expanded(
                       child: Text(
                         'No upcoming deadlines. Start by browsing projects that match your skills.',
                         style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 13),
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -153,6 +225,29 @@ class FreelancerHomePage extends ConsumerWidget {
               ),
             ),
 
+            const SizedBox(height: 24),
+
+            // ── Sign out ─────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await ref
+                      .read(authNotifierProvider.notifier)
+                      .logout();
+                  if (context.mounted) context.go('/auth/login');
+                },
+                icon: const Icon(Icons.logout,
+                    size: 18, color: AppColors.textSecondary),
+                label: const Text(
+                  'Sign out',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.shadow),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -160,12 +255,14 @@ class FreelancerHomePage extends ConsumerWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
+// ── Stat Card Widget ─────────────────────────────────────
+class StatCard extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
 
-  const _StatCard({
+  const StatCard({
+    super.key,
     required this.icon,
     required this.value,
     required this.label,
@@ -182,15 +279,22 @@ class _StatCard extends StatelessWidget {
             children: [
               Icon(icon, color: AppColors.primary, size: 22),
               const SizedBox(height: 10),
-              Text(value,
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),
