@@ -139,7 +139,7 @@ class FreelancerHomePage extends ConsumerWidget {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => context.push('/projects/browse'),
                     icon: const Icon(Icons.search, size: 18),
                     label: const Text('Browse Projects'),
                   ),

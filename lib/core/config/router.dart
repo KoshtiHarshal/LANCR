@@ -9,6 +9,7 @@ import '../presentation/main_shell_page.dart';
 import '../../../main.dart';
 import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/post_project_page.dart';
+import '../../features/projects/presentation/browse_projects_page.dart';
 
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
@@ -111,6 +112,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/projects/post',
         builder: (context, state) => const PostProjectPage(),
+      ),
+      GoRoute(
+        path: '/projects/browse',
+        builder: (context, state) => const BrowseProjectsPage(),
+      ),
+      GoRoute(
+        path: '/projects/:id',
+        builder: (context, state) => Scaffold(
+          appBar: AppBar(title: const Text('Project Detail')),
+          body: Center(child: Text('Project: ${state.pathParameters['id']}')),
+        ),
       ),
     ],
   );

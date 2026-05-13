@@ -5,12 +5,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/projects/presentation/freelancer_home_page.dart';
 import '../../features/projects/presentation/client_home_page.dart';
+import '../../features/projects/presentation/browse_projects_page.dart';
 import '../theme/app_colors.dart';
 import '../../main.dart';
 
-final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
+/// Notifier for bottom nav index. Default: 0
+class BottomNavNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
 
-// Reads the role once from Supabase — cached for the session
+  void setIndex(int index) => state = index;
+}
+
+final bottomNavIndexProvider =
+NotifierProvider<BottomNavNotifier, int>(BottomNavNotifier.new);
+
+/// Reads the current user's role from Supabase profiles table.
 final roleProvider = FutureProvider<String?>((ref) async {
   final user = supabase.auth.currentUser;
   if (user == null) return null;
@@ -21,7 +31,7 @@ final roleProvider = FutureProvider<String?>((ref) async {
         .eq('id', user.id)
         .single();
     return data['role'] as String?;
-  } catch (_) {
+  } catch (e) {
     return null;
   }
 });
@@ -37,9 +47,11 @@ class MainShellPage extends ConsumerWidget {
     return roleAsync.when(
       loading: () => const Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       ),
-      error: (e, _) => const Scaffold(
+      error: (e, st) => const Scaffold(
         body: Center(child: Text('Something went wrong')),
       ),
       data: (role) {
@@ -54,30 +66,39 @@ class MainShellPage extends ConsumerWidget {
         ]
             : [
           const FreelancerHomePage(),
-          const _PlaceholderPage(label: 'Projects'),
+          const BrowseProjectsPage(),
           const _PlaceholderPage(label: 'Messages'),
           const _PlaceholderPage(label: 'Profile'),
         ];
 
         final navItems = isClient
             ? const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.folder_outlined), label: 'Projects'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.folder_outlined), label: 'Projects'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Profile'),
         ]
             : const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.work_outline), label: 'Projects'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.work_outline), label: 'Projects'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Profile'),
         ];
 
         return Scaffold(
           body: pages[currentIndex],
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: currentIndex,
-            onTap: (idx) => ref.read(bottomNavIndexProvider.notifier).state = idx,
+            onTap: (idx) =>
+                ref.read(bottomNavIndexProvider.notifier).setIndex(idx),
             type: BottomNavigationBarType.fixed,
             selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.textSecondary,
