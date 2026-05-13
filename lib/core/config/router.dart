@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
 import '../../features/onboarding/presentation/role_selection_page.dart';
 import '../presentation/main_shell_page.dart';
-import '../../../main.dart'; // for global `supabase` accessor
+import '../../../main.dart';
+import '../../features/projects/presentation/client_home_page.dart';
+import '../../features/projects/presentation/post_project_page.dart';
 
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
@@ -48,7 +49,7 @@ class SplashPage extends ConsumerWidget {
         });
       },
       loading: () {},
-      error: (_, __) {
+      error: (e, _) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) context.go('/auth/login');
         });
@@ -102,6 +103,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         builder: (context, state) => const MainShellPage(),
+      ),
+      GoRoute(
+        path: '/client/home',
+        builder: (context, state) => const ClientHomePage(),
+      ),
+      GoRoute(
+        path: '/projects/post',
+        builder: (context, state) => const PostProjectPage(),
       ),
     ],
   );

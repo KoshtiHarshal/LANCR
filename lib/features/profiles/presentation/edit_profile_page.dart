@@ -1,8 +1,9 @@
+// lib/features/profiles/presentation/edit_profile_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../auth/presentation/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
 
@@ -28,12 +29,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   bool _saving = false;
   bool _isFreelancer = true;
-  Map<String, dynamic>? _existingProfile;
+  // _existingProfile removed — data is written directly to controllers
 
   @override
   void initState() {
     super.initState();
-    // Initialize empty controllers first
     _nameCtrl = TextEditingController();
     _headlineCtrl = TextEditingController();
     _companyCtrl = TextEditingController();
@@ -44,7 +44,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _portfolioCtrl = TextEditingController();
     _linkedinCtrl = TextEditingController();
 
-    // Then load existing profile from Supabase
     _loadProfile();
   }
 
@@ -61,16 +60,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       if (!mounted) return;
       setState(() {
-        _existingProfile = data;
         _isFreelancer = (data['role'] ?? 'freelancer') == 'freelancer';
-
         _nameCtrl.text = data['name'] ?? '';
         _headlineCtrl.text = data['headline'] ?? '';
         _companyCtrl.text = data['company'] ?? '';
         _locationCtrl.text = data['location'] ?? '';
         _bioCtrl.text = data['bio'] ?? '';
-        _skillsCtrl.text =
-            (data['skills'] as List<dynamic>? ?? []).join(', ');
+        _skillsCtrl.text = (data['skills'] as List? ?? []).join(', ');
         _yearsCtrl.text = data['experience_years']?.toString() ?? '';
         _portfolioCtrl.text = data['portfolio_url'] ?? '';
         _linkedinCtrl.text = data['linkedin_url'] ?? '';
