@@ -15,6 +15,8 @@ import '../../features/projects/presentation/project_detail_page.dart';
 import '../../features/projects/presentation/submit_proposal_page.dart';
 import '../presentation/main_shell_page.dart';
 import '../../../main.dart';
+import '../../features/projects/presentation/view_proposals_page.dart';
+import '../../features/projects/presentation/client_projects_page.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Splash / entry screen
@@ -56,7 +58,7 @@ class SplashPage extends ConsumerWidget {
         });
       },
       loading: () {},
-      error: (_, __) {
+      error: (_, e) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) context.go('/auth/login');
         });
@@ -134,7 +136,10 @@ final routerProvider = Provider((ref) {
         path: '/projects/browse',
         builder: (context, state) => const BrowseProjectsPage(),
       ),
-
+      GoRoute(
+        path: '/client/projects',
+        builder: (context, state) => const ClientProjectsPage(),
+      ),
       // ✅ Single correct /projects/:id route (duplicate removed)
       GoRoute(
         path: '/projects/:id',
@@ -148,18 +153,10 @@ final routerProvider = Provider((ref) {
           projectId: state.pathParameters['id']!,
         ),
       ),
-
-      // Placeholder — View Proposals page (coming next)
       GoRoute(
         path: '/projects/:id/proposals',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Proposals')),
-          body: Center(
-            child: Text(
-              'Proposals — coming soon\n(project: ${state.pathParameters['id']})',
-              textAlign: TextAlign.center,
-            ),
-          ),
+        builder: (context, state) => ViewProposalsPage(
+          projectId: state.pathParameters['id']!,
         ),
       ),
     ],
