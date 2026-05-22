@@ -3,13 +3,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/projects/presentation/freelancer_home_page.dart';
-import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/browse_projects_page.dart';
+import '../../features/projects/presentation/client_home_page.dart';
+import '../../features/projects/presentation/client_projects_page.dart';
+import '../../features/projects/presentation/freelancer_home_page.dart';
+import '../../features/projects/presentation/my_proposals_page.dart';
 import '../theme/app_colors.dart';
 import '../../main.dart';
 
-/// Notifier for bottom nav index. Default: 0
+// ─────────────────────────────────────────────────────────────
+// Bottom nav index state
+// ─────────────────────────────────────────────────────────────
 class BottomNavNotifier extends Notifier<int> {
   @override
   int build() => 0;
@@ -20,7 +24,9 @@ class BottomNavNotifier extends Notifier<int> {
 final bottomNavIndexProvider =
 NotifierProvider<BottomNavNotifier, int>(BottomNavNotifier.new);
 
-/// Reads the current user's role from Supabase profiles table.
+// ─────────────────────────────────────────────────────────────
+// Role provider
+// ─────────────────────────────────────────────────────────────
 final roleProvider = FutureProvider<String?>((ref) async {
   final user = supabase.auth.currentUser;
   if (user == null) return null;
@@ -31,18 +37,21 @@ final roleProvider = FutureProvider<String?>((ref) async {
         .eq('id', user.id)
         .single();
     return data['role'] as String?;
-  } catch (e) {
+  } catch (_) {
     return null;
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// Main Shell
+// ─────────────────────────────────────────────────────────────
 class MainShellPage extends ConsumerWidget {
   const MainShellPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
-    final roleAsync = ref.watch(roleProvider);
+    final roleAsync    = ref.watch(roleProvider);
 
     return roleAsync.when(
       loading: () => const Scaffold(
@@ -51,46 +60,72 @@ class MainShellPage extends ConsumerWidget {
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       ),
-      error: (e, st) => const Scaffold(
+      error: (_, __) => const Scaffold(
         body: Center(child: Text('Something went wrong')),
       ),
       data: (role) {
         final isClient = role == 'client';
 
+        // ── Pages ──────────────────────────────────────
         final pages = isClient
             ? [
-          const ClientHomePage(),
-          const _PlaceholderPage(label: 'My Projects'),
-          const _PlaceholderPage(label: 'Messages'),
-          const _PlaceholderPage(label: 'Profile'),
+          const ClientHomePage(),       // 0 - Home
+          const ClientProjectsPage(),   // 1 - My Projects ✅ (was placeholder)
+          const _PlaceholderPage(label: 'Messages'), // 2
+          const _PlaceholderPage(label: 'Profile'),  // 3
         ]
             : [
-          const FreelancerHomePage(),
-          const BrowseProjectsPage(),
-          const _PlaceholderPage(label: 'Messages'),
-          const _PlaceholderPage(label: 'Profile'),
+          const FreelancerHomePage(),   // 0 - Home
+          const BrowseProjectsPage(),   // 1 - Browse Projects
+          const MyProposalsPage(),      // 2 - My Proposals ✅ (was placeholder)
+          const _PlaceholderPage(label: 'Profile'),  // 3
         ];
 
+        // ── Nav items ──────────────────────────────────
         final navItems = isClient
             ? const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: 'Home'),
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.folder_outlined), label: 'Projects'),
+            icon: Icon(Icons.folder_outlined),
+            activeIcon: Icon(Icons.folder),
+            label: 'Projects',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Messages',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ]
             : const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: 'Home'),
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.work_outline), label: 'Projects'),
+            icon: Icon(Icons.work_outline),
+            activeIcon: Icon(Icons.work),
+            label: 'Projects',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
+            icon: Icon(Icons.send_outlined),
+            activeIcon: Icon(Icons.send),
+            label: 'Proposals',  // ✅ renamed from Messages
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ];
 
         return Scaffold(
@@ -102,6 +137,8 @@ class MainShellPage extends ConsumerWidget {
             type: BottomNavigationBarType.fixed,
             selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.textSecondary,
+            backgroundColor: AppColors.surface,
+            elevation: 8,
             items: navItems,
           ),
         );
@@ -110,6 +147,9 @@ class MainShellPage extends ConsumerWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Placeholder page (Messages / Profile — coming soon)
+// ─────────────────────────────────────────────────────────────
 class _PlaceholderPage extends StatelessWidget {
   final String label;
   const _PlaceholderPage({required this.label});
@@ -117,8 +157,22 @@ class _PlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: Text(label)),
-      body: Center(child: Text('$label tab – coming soon')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.construction_outlined,
+                size: 48, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+            const SizedBox(height: 12),
+            Text(
+              '$label – coming soon',
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
