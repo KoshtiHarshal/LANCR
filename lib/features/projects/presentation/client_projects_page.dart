@@ -96,7 +96,7 @@ class ClientProjectsPage extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: projects.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (e, s) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final project = projects[index];
               final status  = project['status'] ?? 'open';

@@ -143,7 +143,7 @@ class ClientHomePage extends ConsumerWidget {
                           loading: () => const Text('Loading...',
                               style: TextStyle(
                                   color: Colors.white, fontSize: 15)),
-                          error: (_, __) => Text(user?.email ?? '',
+                          error: (e, s) => Text(user?.email ?? '',
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 15)),
                         ),
@@ -161,7 +161,7 @@ class ClientHomePage extends ConsumerWidget {
                             );
                           },
                           loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const Text(
+                          error: (e, s) => const Text(
                             'Post your first project →',
                             style: TextStyle(
                                 color: Color(0xFFCCEEEC), fontSize: 13),
@@ -200,7 +200,7 @@ class ClientHomePage extends ConsumerWidget {
                     value: '—',
                     label: 'Open\nProjects',
                   ),
-                  error: (_, __) => const StatCard(
+                  error: (e, s) => const StatCard(
                     icon: Icons.folder_open_outlined,
                     value: '0',
                     label: 'Open\nProjects',
@@ -220,7 +220,7 @@ class ClientHomePage extends ConsumerWidget {
                     value: '—',
                     label: 'Proposals\nReceived',
                   ),
-                  error: (_, __) => const StatCard(
+                  error: (e, s) => const StatCard(
                     icon: Icons.people_outline,
                     value: '0',
                     label: 'Proposals\nReceived',
@@ -240,7 +240,7 @@ class ClientHomePage extends ConsumerWidget {
                     value: '—',
                     label: 'Projects\nCompleted',
                   ),
-                  error: (_, __) => const StatCard(
+                  error: (e, s) => const StatCard(
                     icon: Icons.check_circle_outline,
                     value: '0',
                     label: 'Projects\nCompleted',
@@ -342,7 +342,7 @@ class ClientHomePage extends ConsumerWidget {
                 ),
               ),
               loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (e, s) => const SizedBox.shrink(),
             ),
 
             const SizedBox(height: 24),

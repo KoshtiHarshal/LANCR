@@ -11,6 +11,7 @@ import '../../features/onboarding/presentation/role_selection_page.dart';
 import '../../features/projects/presentation/browse_projects_page.dart';
 import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/post_project_page.dart';
+import '../../features/profiles/presentation/edit_profile_page.dart';
 import '../../features/projects/presentation/project_detail_page.dart';
 import '../../features/projects/presentation/submit_proposal_page.dart';
 import '../presentation/main_shell_page.dart';
@@ -158,6 +159,10 @@ final routerProvider = Provider((ref) {
         builder: (context, state) => ViewProposalsPage(
           projectId: state.pathParameters['id']!,
         ),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        builder: (context, state) => const EditProfilePage(),
       ),
     ],
   );

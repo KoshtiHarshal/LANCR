@@ -117,7 +117,7 @@ class MyProposalsPage extends ConsumerWidget {
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: proposals.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (e, s) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     return _ProposalCard(proposal: proposals[index]);
                   },

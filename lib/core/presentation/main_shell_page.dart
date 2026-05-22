@@ -10,6 +10,7 @@ import '../../features/projects/presentation/freelancer_home_page.dart';
 import '../../features/projects/presentation/my_proposals_page.dart';
 import '../theme/app_colors.dart';
 import '../../main.dart';
+import '../../features/profiles/presentation/profile_page.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Bottom nav index state
@@ -60,7 +61,7 @@ class MainShellPage extends ConsumerWidget {
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       ),
-      error: (_, __) => const Scaffold(
+      error: (e, s) => const Scaffold(
         body: Center(child: Text('Something went wrong')),
       ),
       data: (role) {
@@ -72,13 +73,13 @@ class MainShellPage extends ConsumerWidget {
           const ClientHomePage(),       // 0 - Home
           const ClientProjectsPage(),   // 1 - My Projects ✅ (was placeholder)
           const _PlaceholderPage(label: 'Messages'), // 2
-          const _PlaceholderPage(label: 'Profile'),  // 3
+          const ProfilePage(),
         ]
             : [
           const FreelancerHomePage(),   // 0 - Home
           const BrowseProjectsPage(),   // 1 - Browse Projects
           const MyProposalsPage(),      // 2 - My Proposals ✅ (was placeholder)
-          const _PlaceholderPage(label: 'Profile'),  // 3
+          const ProfilePage(), // 3
         ];
 
         // ── Nav items ──────────────────────────────────

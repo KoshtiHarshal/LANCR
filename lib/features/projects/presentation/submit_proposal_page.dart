@@ -164,9 +164,9 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Enter your bid amount';
                   if (double.tryParse(v) == null)
-                    return 'Enter a valid number';
+                    {return 'Enter a valid number';}
                   if (double.parse(v) <= 0)
-                    return 'Bid must be greater than 0';
+                    {return 'Bid must be greater than 0';}
                   return null;
                 },
               ),
@@ -198,9 +198,9 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty)
-                    return 'Please write a cover letter';
+                    {return 'Please write a cover letter';}
                   if (v.trim().length < 30)
-                    return 'Cover letter too short (min 30 characters)';
+                    {return 'Cover letter too short (min 30 characters)';}
                   return null;
                 },
               ),

@@ -258,7 +258,7 @@ class ProjectDetailPage extends ConsumerWidget {
                 if (!isClient)
                   existingAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error:   (_, __) => const SizedBox.shrink(),
+                    error:   (e, s) => const SizedBox.shrink(),
                     data: (existing) {
                       if (existing != null) {
                         return _ProposalStatusBanner(
