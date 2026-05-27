@@ -7,13 +7,69 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import 'browse_projects_provider.dart';
 
-class BrowseProjectsPage extends ConsumerWidget {
+class BrowseProjectsPage extends ConsumerStatefulWidget {
   const BrowseProjectsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BrowseProjectsPage> createState() =>
+      _BrowseProjectsPageState();
+}
+
+class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _openFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _FilterSheet(ref: ref),
+    );
+  }
+
+  PopupMenuItem<SortOption> _sortItem(
+      SortOption value,
+      String label,
+      IconData icon,
+      SortOption current,
+      ) {
+    final isActive = value == current;
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon,
+              size: 16,
+              color:
+              isActive ? AppColors.primary : AppColors.textSecondary),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              color:
+              isActive ? AppColors.primary : AppColors.textPrimary,
+              fontWeight:
+              isActive ? FontWeight.w700 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final projectsAsync = ref.watch(browseProjectsProvider);
     final selectedSkill = ref.watch(selectedSkillFilterProvider);
+    final searchQuery   = ref.watch(searchQueryProvider);
+    final sortOption    = ref.watch(sortOptionProvider);
+    final filters       = ref.watch(filterProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -22,9 +78,8 @@ class BrowseProjectsPage extends ConsumerWidget {
       ),
       body: projectsAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-        error: (e, st) => Center(
+            child: CircularProgressIndicator(color: AppColors.primary)),
+        error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -34,17 +89,14 @@ class BrowseProjectsPage extends ConsumerWidget {
               const Text(
                 'Could not load projects',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary),
               ),
               const SizedBox(height: 6),
               Text(
                 e.toString().replaceFirst('Exception: ', ''),
                 style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
+                    fontSize: 12, color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -57,7 +109,7 @@ class BrowseProjectsPage extends ConsumerWidget {
           ),
         ),
         data: (projects) {
-          // Build unique sorted skill list from all fetched projects
+          // Build skill chips
           final allSkills = <String>{};
           for (final p in projects) {
             final skills = p['skills'] as List? ?? [];
@@ -65,48 +117,319 @@ class BrowseProjectsPage extends ConsumerWidget {
           }
           final filterChips = ['All', ...allSkills.toList()..sort()];
 
-          // Apply the active skill filter
-          final filtered = selectedSkill == 'All'
-              ? projects
-              : projects.where((p) {
-            final skills = (p['skills'] as List? ?? [])
-                .map((s) => s.toString())
-                .toList();
-            return skills.contains(selectedSkill);
+          // ── Apply all filters ─────────────────────────
+          var filtered = projects.where((p) {
+            // Status
+            if (filters.status != 'all') {
+              if ((p['status'] as String? ?? 'open') != filters.status) {
+                return false;
+              }
+            }
+
+            // Skill chip
+            if (selectedSkill != 'All') {
+              final skills = (p['skills'] as List? ?? [])
+                  .map((s) => s.toString())
+                  .toList();
+              if (!skills.contains(selectedSkill)) return false;
+            }
+
+            // Budget range
+            final bMin =
+                (p['budget_min'] as num?)?.toDouble() ?? 0;
+            final bMax =
+                (p['budget_max'] as num?)?.toDouble() ?? 5000;
+            if (bMax < filters.budgetMin || bMin > filters.budgetMax) {
+              return false;
+            }
+
+            // Duration
+            if (filters.duration != 'any') {
+              if ((p['duration'] as String? ?? '') != filters.duration) {
+                return false;
+              }
+            }
+
+            // Keyword — title, description, skills, category
+            if (searchQuery.trim().isNotEmpty) {
+              final q = searchQuery.trim().toLowerCase();
+              final title =
+              (p['title'] as String? ?? '').toLowerCase();
+              final desc =
+              (p['description'] as String? ?? '').toLowerCase();
+              final skillStr = ((p['skills'] as List? ?? [])
+                  .map((s) => s.toString())
+                  .join(' '))
+                  .toLowerCase();
+              final category =
+              (p['category'] as String? ?? '').toLowerCase();
+              if (!title.contains(q) &&
+                  !desc.contains(q) &&
+                  !skillStr.contains(q) &&
+                  !category.contains(q)) {
+                return false;
+              }
+            }
+
+            return true;
           }).toList();
+
+          // ── Sort ──────────────────────────────────────
+          switch (sortOption) {
+            case SortOption.newest:
+              filtered.sort((a, b) {
+                final aD = DateTime.tryParse(
+                    a['created_at'] as String? ?? '') ??
+                    DateTime(0);
+                final bD = DateTime.tryParse(
+                    b['created_at'] as String? ?? '') ??
+                    DateTime(0);
+                return bD.compareTo(aD);
+              });
+            case SortOption.budgetHigh:
+              filtered.sort((a, b) {
+                final aV =
+                    (a['budget_max'] as num?)?.toDouble() ?? 0;
+                final bV =
+                    (b['budget_max'] as num?)?.toDouble() ?? 0;
+                return bV.compareTo(aV);
+              });
+            case SortOption.budgetLow:
+              filtered.sort((a, b) {
+                final aV =
+                    (a['budget_min'] as num?)?.toDouble() ??
+                        double.infinity;
+                final bV =
+                    (b['budget_min'] as num?)?.toDouble() ??
+                        double.infinity;
+                return aV.compareTo(bV);
+              });
+          }
+
+          // Active filter count
+          int activeFilters = 0;
+          if (selectedSkill != 'All') activeFilters++;
+          if (searchQuery.trim().isNotEmpty) activeFilters++;
+          if (sortOption != SortOption.newest) activeFilters++;
+          if (!filters.isDefault) activeFilters++;
 
           return RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () async => ref.invalidate(browseProjectsProvider),
+            onRefresh: () async =>
+                ref.invalidate(browseProjectsProvider),
             child: CustomScrollView(
               slivers: [
 
-                // ── Skill Filter Chips ─────────────────────
+                // ── Search + Sort + Filter ─────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Row(
+                      children: [
+                        // Search field
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (val) => ref
+                                .read(searchQueryProvider.notifier)
+                                .update(val),
+                            style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textPrimary),
+                            decoration: InputDecoration(
+                              hintText:
+                              'Search by title, skill, category...',
+                              hintStyle: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13),
+                              prefixIcon: const Icon(Icons.search,
+                                  color: AppColors.textSecondary,
+                                  size: 20),
+                              suffixIcon: searchQuery.isNotEmpty
+                                  ? GestureDetector(
+                                onTap: () {
+                                  _searchController.clear();
+                                  ref
+                                      .read(searchQueryProvider
+                                      .notifier)
+                                      .clear();
+                                },
+                                child: const Icon(Icons.close,
+                                    color: AppColors.textSecondary,
+                                    size: 18),
+                              )
+                                  : null,
+                              filled: true,
+                              fillColor: AppColors.surface,
+                              contentPadding:
+                              const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 16),
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: AppColors.shadow),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: AppColors.shadow),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: AppColors.primary),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Sort button
+                        PopupMenuButton<SortOption>(
+                          tooltip: 'Sort',
+                          offset: const Offset(0, 52),
+                          onSelected: (o) => ref
+                              .read(sortOptionProvider.notifier)
+                              .select(o),
+                          itemBuilder: (context) => [
+                            _sortItem(
+                              SortOption.newest,
+                              'Newest First',
+                              Icons.access_time,
+                              sortOption,
+                            ),
+                            _sortItem(
+                              SortOption.budgetHigh,
+                              'Budget: High → Low',
+                              Icons.arrow_upward,
+                              sortOption,
+                            ),
+                            _sortItem(
+                              SortOption.budgetLow,
+                              'Budget: Low → High',
+                              Icons.arrow_downward,
+                              sortOption,
+                            ),
+                          ],
+                          child: Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: sortOption != SortOption.newest
+                                  ? AppColors.primary
+                                  : AppColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: sortOption != SortOption.newest
+                                    ? AppColors.primary
+                                    : AppColors.shadow,
+                              ),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  Icons.sort,
+                                  color:
+                                  sortOption != SortOption.newest
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
+                                  size: 22,
+                                ),
+                                if (sortOption != SortOption.newest)
+                                  Positioned(
+                                    top: 6,
+                                    right: 6,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Filter button
+                        GestureDetector(
+                          onTap: _openFilters,
+                          child: Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: !filters.isDefault
+                                  ? AppColors.primary
+                                  : AppColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: !filters.isDefault
+                                    ? AppColors.primary
+                                    : AppColors.shadow,
+                              ),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  Icons.tune,
+                                  color: !filters.isDefault
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
+                                  size: 22,
+                                ),
+                                if (!filters.isDefault)
+                                  Positioned(
+                                    top: 6,
+                                    right: 6,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ── Skill chips ────────────────────────────
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 52,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
+                          horizontal: 16, vertical: 10),
                       itemCount: filterChips.length,
-                      separatorBuilder: (context, index) =>
+                      separatorBuilder: (_, __) =>
                       const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final chip = filterChips[index];
                         final isSelected = chip == selectedSkill;
                         return GestureDetector(
                           onTap: () => ref
-                              .read(selectedSkillFilterProvider.notifier)
+                              .read(
+                              selectedSkillFilterProvider.notifier)
                               .select(chip),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
+                                horizontal: 14, vertical: 6),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? AppColors.primary
@@ -135,16 +458,64 @@ class BrowseProjectsPage extends ConsumerWidget {
                   ),
                 ),
 
-                // ── Project count label ────────────────────
+                // ── Result count + Clear all ───────────────
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                    child: Text(
-                      '${filtered.length} project${filtered.length == 1 ? '' : 's'} found',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '${filtered.length} project${filtered.length == 1 ? '' : 's'} found',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary),
+                        ),
+                        const Spacer(),
+                        if (activeFilters > 0)
+                          GestureDetector(
+                            onTap: () {
+                              ref
+                                  .read(selectedSkillFilterProvider
+                                  .notifier)
+                                  .select('All');
+                              ref
+                                  .read(searchQueryProvider.notifier)
+                                  .clear();
+                              ref
+                                  .read(sortOptionProvider.notifier)
+                                  .select(SortOption.newest);
+                              ref
+                                  .read(filterProvider.notifier)
+                                  .reset();
+                              _searchController.clear();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.filter_alt_off,
+                                      size: 13,
+                                      color: AppColors.primary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Clear ($activeFilters)',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -157,39 +528,61 @@ class BrowseProjectsPage extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.search_off_outlined,
-                              size: 48, color: AppColors.textSecondary),
+                              size: 48,
+                              color: AppColors.textSecondary),
                           const SizedBox(height: 12),
                           Text(
-                            selectedSkill == 'All'
-                                ? 'No projects posted yet.'
-                                : 'No projects require "$selectedSkill".',
+                            searchQuery.isNotEmpty
+                                ? 'No results for "$searchQuery"'
+                                : 'No projects match your filters.',
                             style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14,
-                            ),
+                                color: AppColors.textSecondary,
+                                fontSize: 14),
+                            textAlign: TextAlign.center,
                           ),
+                          if (activeFilters > 0) ...[
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () {
+                                ref
+                                    .read(selectedSkillFilterProvider
+                                    .notifier)
+                                    .select('All');
+                                ref
+                                    .read(searchQueryProvider.notifier)
+                                    .clear();
+                                ref
+                                    .read(sortOptionProvider.notifier)
+                                    .select(SortOption.newest);
+                                ref
+                                    .read(filterProvider.notifier)
+                                    .reset();
+                                _searchController.clear();
+                              },
+                              child: const Text('Clear all filters'),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ),
 
-                // ── Project Cards ──────────────────────────
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  sliver: SliverList.separated(
-                    itemCount: filtered.length,
-                    separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      return ProjectCard(
+                // ── Project cards ──────────────────────────
+                if (filtered.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    sliver: SliverList.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) =>
+                      const SizedBox(height: 12),
+                      itemBuilder: (context, index) => ProjectCard(
                         project: filtered[index],
                         onTap: () => context.push(
                           '/projects/${filtered[index]['id']}',
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
           );
@@ -199,7 +592,244 @@ class BrowseProjectsPage extends ConsumerWidget {
   }
 }
 
-// ── Project Card ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Filter Bottom Sheet
+// ─────────────────────────────────────────────────────────────
+class _FilterSheet extends ConsumerStatefulWidget {
+  final WidgetRef ref;
+  const _FilterSheet({required this.ref});
+
+  @override
+  ConsumerState<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends ConsumerState<_FilterSheet> {
+  late String _status;
+  late RangeValues _budget;
+  late String _duration;
+
+  @override
+  void initState() {
+    super.initState();
+    final f   = ref.read(filterProvider);
+    _status   = f.status;
+    _budget   = RangeValues(f.budgetMin, f.budgetMax);
+    _duration = f.duration;
+  }
+
+  void _apply() {
+    ref.read(filterProvider.notifier)
+      ..setStatus(_status)
+      ..setBudgetRange(_budget.start, _budget.end)
+      ..setDuration(_duration);
+    Navigator.pop(context);
+  }
+
+  void _reset() {
+    setState(() {
+      _status   = 'open';
+      _budget   = const RangeValues(0, 5000);
+      _duration = 'any';
+    });
+    ref.read(filterProvider.notifier).reset();
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+
+            // Header
+            Row(
+              children: [
+                const Text(
+                  'Filters',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: _reset,
+                  child: const Text('Reset',
+                      style: TextStyle(color: AppColors.primary)),
+                ),
+              ],
+            ),
+            const Divider(color: AppColors.shadow),
+            const SizedBox(height: 12),
+
+            // ── Status ──────────────────────────────────
+            const Text(
+              'Status',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: ['open', 'all', 'closed'].map((s) {
+                final label = s == 'all'
+                    ? 'All'
+                    : s[0].toUpperCase() + s.substring(1);
+                final isSelected = _status == s;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _status = s),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.shadow,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+
+            // ── Budget Range ─────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Budget Range',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary),
+                ),
+                Text(
+                  '\$${_budget.start.toInt()} – \$${_budget.end.toInt()}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            RangeSlider(
+              values: _budget,
+              min: 0,
+              max: 5000,
+              divisions: 50,
+              activeColor: AppColors.primary,
+              inactiveColor: AppColors.primaryLight,
+              onChanged: (v) => setState(() => _budget = v),
+            ),
+            const SizedBox(height: 24),
+
+            // ── Duration ─────────────────────────────────
+            const Text(
+              'Duration',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: const {
+                'any': 'Any',
+                'less_1_month': '< 1 Month',
+                '1_3_months': '1–3 Months',
+                '3_6_months': '3–6 Months',
+                'more_6_months': '6+ Months',
+              }.entries.map((e) {
+                final isSelected = _duration == e.key;
+                return GestureDetector(
+                  onTap: () => setState(() => _duration = e.key),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.shadow,
+                      ),
+                    ),
+                    child: Text(
+                      e.value,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
+
+            // ── Apply button ─────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _apply,
+                child: const Text('Apply Filters'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Project Card
+// ─────────────────────────────────────────────────────────────
 class ProjectCard extends StatelessWidget {
   final Map<String, dynamic> project;
   final VoidCallback onTap;
@@ -221,16 +851,11 @@ class ProjectCard extends StatelessWidget {
 
   String _formatDuration(String? raw) {
     switch (raw) {
-      case 'less_1_month':
-        return '< 1 month';
-      case '1_3_months':
-        return '1–3 months';
-      case '3_6_months':
-        return '3–6 months';
-      case 'more_6_months':
-        return '6+ months';
-      default:
-        return raw ?? '';
+      case 'less_1_month':  return '< 1 month';
+      case '1_3_months':    return '1–3 months';
+      case '3_6_months':    return '3–6 months';
+      case 'more_6_months': return '6+ months';
+      default:              return raw ?? '';
     }
   }
 
@@ -240,20 +865,18 @@ class ProjectCard extends StatelessWidget {
     if (dt == null) return '';
     final diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inHours < 24)   return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
   }
 
   @override
   Widget build(BuildContext context) {
-    final skills = (project['skills'] as List? ?? [])
-        .map((s) => s.toString())
-        .toList();
-    final profile = project['profiles'] as Map<String, dynamic>?;
-    final clientName =
-        profile?['name'] ?? profile?['company'] ?? 'Client';
+    final skills         = (project['skills'] as List? ?? [])
+        .map((s) => s.toString()).toList();
+    final profile        = project['profiles'] as Map?;
+    final clientName     = profile?['name'] ?? profile?['company'] ?? 'Client';
     final clientLocation = profile?['location'] as String?;
-    final duration = _formatDuration(project['duration'] as String?);
+    final duration       = _formatDuration(project['duration'] as String?);
 
     return GestureDetector(
       onTap: onTap,
@@ -268,7 +891,7 @@ class ProjectCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Title + time ago ───────────────────────
+            // Title + time ago
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -286,28 +909,25 @@ class ProjectCard extends StatelessWidget {
                 Text(
                   _timeAgo(project['created_at'] as String?),
                   style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                  ),
+                      fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],
             ),
             const SizedBox(height: 6),
 
-            // ── Description preview ────────────────────
+            // Description
             Text(
               project['description'] ?? '',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.4),
             ),
             const SizedBox(height: 12),
 
-            // ── Budget + Duration chips ────────────────
+            // Budget + Duration
             Row(
               children: [
                 _InfoChip(
@@ -328,84 +948,59 @@ class ProjectCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // ── Skill tags ─────────────────────────────
+            // Skill tags
             if (skills.isNotEmpty)
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: skills
-                    .take(4)
-                    .map(
-                      (skill) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.shadow),
-                    ),
-                    child: Text(
-                      skill,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                children: skills.take(4).map((skill) => Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.shadow),
                   ),
-                )
-                    .toList(),
+                  child: Text(skill,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary)),
+                )).toList(),
               ),
 
             const SizedBox(height: 12),
             const Divider(color: AppColors.shadow, height: 1),
             const SizedBox(height: 10),
 
-            // ── Client info ────────────────────────────
+            // Client info
             Row(
               children: [
                 const CircleAvatar(
                   radius: 12,
                   backgroundColor: AppColors.primaryLight,
-                  child: Icon(
-                    Icons.person_outline,
-                    color: AppColors.primary,
-                    size: 14,
-                  ),
+                  child: Icon(Icons.person_outline,
+                      color: AppColors.primary, size: 14),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  clientName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                Text(clientName,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
                 if (clientLocation != null &&
                     clientLocation.isNotEmpty) ...[
                   const SizedBox(width: 6),
-                  const Icon(
-                    Icons.location_on_outlined,
-                    size: 12,
-                    color: AppColors.textSecondary,
-                  ),
+                  const Icon(Icons.location_on_outlined,
+                      size: 12, color: AppColors.textSecondary),
                   const SizedBox(width: 2),
-                  Text(
-                    clientLocation,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  Text(clientLocation,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary)),
                 ],
                 const Spacer(),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 12,
-                  color: AppColors.textSecondary,
-                ),
+                const Icon(Icons.arrow_forward_ios,
+                    size: 12, color: AppColors.textSecondary),
               ],
             ),
           ],
@@ -415,7 +1010,9 @@ class ProjectCard extends StatelessWidget {
   }
 }
 
-// ── Info Chip ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Info Chip
+// ─────────────────────────────────────────────────────────────
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -432,7 +1029,8 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding:
+      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
@@ -442,14 +1040,11 @@ class _InfoChip extends StatelessWidget {
         children: [
           Icon(icon, size: 13, color: textColor),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: textColor,
-            ),
-          ),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: textColor)),
         ],
       ),
     );
