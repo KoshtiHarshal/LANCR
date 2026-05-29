@@ -33,7 +33,8 @@ class MyProposalsPage extends ConsumerWidget {
                 child: Text(
                   e.toString().replaceFirst('Exception: ', ''),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style:
+                  const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               const SizedBox(height: 16),
@@ -82,7 +83,6 @@ class MyProposalsPage extends ConsumerWidget {
             );
           }
 
-          // Stats bar
           final total    = proposals.length;
           final pending  = proposals.where((p) => p['status'] == 'pending').length;
           final accepted = proposals.where((p) => p['status'] == 'accepted').length;
@@ -117,10 +117,10 @@ class MyProposalsPage extends ConsumerWidget {
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: proposals.length,
-                  separatorBuilder: (e, s) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    return _ProposalCard(proposal: proposals[index]);
-                  },
+                  separatorBuilder: (_, __) =>
+                  const SizedBox(height: 12),
+                  itemBuilder: (context, index) =>
+                      _ProposalCard(proposal: proposals[index]),
                 ),
               ),
             ],
@@ -161,9 +161,7 @@ class _StatPill extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
-          ),
+              fontSize: 11, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -174,7 +172,7 @@ class _StatPill extends StatelessWidget {
 // Proposal Card
 // ─────────────────────────────────────────────────────────────
 class _ProposalCard extends StatefulWidget {
-  final Map<String, dynamic> proposal;
+  final Map proposal;
   const _ProposalCard({required this.proposal});
 
   @override
@@ -210,7 +208,7 @@ class _ProposalCardState extends State<_ProposalCard> {
 
   @override
   Widget build(BuildContext context) {
-    final project     = widget.proposal['project'] as Map<String, dynamic>?;
+    final project     = widget.proposal['project'] as Map?;
     final title       = project?['title'] ?? 'Project';
     final description = project?['description'] ?? '';
     final budgetMin   = project?['budget_min'];
@@ -237,7 +235,7 @@ class _ProposalCardState extends State<_ProposalCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          // ── Project Title + Status ────────────────────
+          // ── Project Title + Status badge ──────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
@@ -259,7 +257,6 @@ class _ProposalCardState extends State<_ProposalCard> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Proposal status badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
@@ -304,12 +301,11 @@ class _ProposalCardState extends State<_ProposalCard> {
           ),
           const SizedBox(height: 10),
 
-          // ── Budget + Your Bid ─────────────────────────
+          // ── Budget + Bid + Project status ─────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                // Project budget range
                 if (budgetMin != null || budgetMax != null)
                   _Chip(
                     label: 'Budget: \$$budgetMin–\$$budgetMax',
@@ -317,14 +313,12 @@ class _ProposalCardState extends State<_ProposalCard> {
                     bgColor: AppColors.background,
                   ),
                 const SizedBox(width: 8),
-                // Your bid
                 _Chip(
                   label: 'Your bid: \$$bidAmount',
                   color: AppColors.primary,
                   bgColor: AppColors.primaryLight,
                 ),
                 const Spacer(),
-                // Project open/closed tag
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8, vertical: 3),
@@ -395,14 +389,17 @@ class _ProposalCardState extends State<_ProposalCard> {
             ),
           ),
 
-          // ── Accepted Banner ───────────────────────────
-          if (status == 'accepted')
+          // ── Accepted Banner + View Button ─────────────
+          if (status == 'accepted') ...[
             Container(
               margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: const Color(0xFF2E7D32)
+                        .withValues(alpha: 0.25)),
               ),
               child: const Row(
                 children: [
@@ -411,17 +408,31 @@ class _ProposalCardState extends State<_ProposalCard> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Congratulations! Your proposal was accepted.',
+                      '🎉 Congratulations! You\'re hired.',
                       style: TextStyle(
                         fontSize: 12,
                         color: Color(0xFF2E7D32),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: projectId != null
+                      ? () => context.push('/projects/$projectId')
+                      : null,
+                  icon: const Icon(Icons.arrow_forward, size: 16),
+                  label: const Text('View Active Project'),
+                ),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
         ],

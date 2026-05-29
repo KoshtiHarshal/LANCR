@@ -22,7 +22,7 @@ class ProjectDetailPage extends ConsumerWidget {
     }
   }
 
-  String _formatBudget(Map<String, dynamic> p) {
+  String _formatBudget(Map p) {
     final min = p['budget_min'];
     final max = p['budget_max'];
     if (min == null && max == null) return 'Negotiable';
@@ -59,7 +59,8 @@ class ProjectDetailPage extends ConsumerWidget {
                 child: Text(
                   e.toString().replaceFirst('Exception: ', ''),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style:
+                  const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               const SizedBox(height: 16),
@@ -75,8 +76,7 @@ class ProjectDetailPage extends ConsumerWidget {
           final skills = (project['skills'] as List? ?? [])
               .map((s) => s.toString())
               .toList();
-          final clientProfile =
-          project['profiles'] as Map<String, dynamic>?;
+          final clientProfile  = project['profiles'] as Map?;
           final clientName     = clientProfile?['name'] ?? 'Client';
           final clientLocation = clientProfile?['location'] as String?;
           final clientCompany  = clientProfile?['company'] as String?;
@@ -238,7 +238,8 @@ class ProjectDetailPage extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.shadow),
+                          border:
+                          Border.all(color: AppColors.shadow),
                         ),
                         child: Text(
                           skill,
@@ -258,7 +259,7 @@ class ProjectDetailPage extends ConsumerWidget {
                 if (!isClient)
                   existingAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error:   (e, s) => const SizedBox.shrink(),
+                    error: (e,s) => const SizedBox.shrink(),
                     data: (existing) {
                       if (existing != null) {
                         return _ProposalStatusBanner(
@@ -270,9 +271,9 @@ class ProjectDetailPage extends ConsumerWidget {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () => context.push(
-                            '/projects/$projectId/submit-proposal',
-                          ),
-                          icon: const Icon(Icons.send_outlined, size: 18),
+                              '/projects/$projectId/submit-proposal'),
+                          icon: const Icon(Icons.send_outlined,
+                              size: 18),
                           label: const Text('Submit Proposal'),
                         ),
                       );
@@ -284,9 +285,8 @@ class ProjectDetailPage extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => context.push(
-                        '/projects/$projectId/proposals',
-                      ),
+                      onPressed: () => context
+                          .push('/projects/$projectId/proposals'),
                       icon: const Icon(Icons.people_outline, size: 18),
                       label: const Text('View Proposals'),
                     ),
@@ -388,6 +388,56 @@ class _ProposalStatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ── Accepted ─────────────────────────────────────
+    if (status == 'accepted') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: const Color(0xFF2E7D32)
+                      .withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.celebration_outlined,
+                    color: Color(0xFF2E7D32), size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '🎉 You\'re Hired!',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2E7D32),
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Your bid of \$$bidAmount was accepted.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // ── Pending / Rejected ────────────────────────────
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
