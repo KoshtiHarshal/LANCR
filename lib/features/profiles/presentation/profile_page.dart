@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../auth/presentation/auth_provider.dart';
-import '../../profiles/presentation/profile_provider.dart';
+import 'profile_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -46,31 +46,33 @@ class ProfilePage extends ConsumerWidget {
             return const Center(child: Text('Profile not found'));
           }
 
-          final name         = profile['name'] as String? ?? '';
-          final email        = profile['email'] as String? ?? '';
-          final role         = profile['role'] as String? ?? 'freelancer';
-          final headline     = profile['headline'] as String?;
-          final bio          = profile['bio'] as String?;
-          final location     = profile['location'] as String?;
-          final company      = profile['company'] as String?;
-          final expYears     = profile['experience_years'];
+          final name = profile['name'] as String? ?? '';
+          final email = profile['email'] as String? ?? '';
+          final role = profile['role'] as String? ?? 'freelancer';
+          final headline = profile['headline'] as String?;
+          final bio = profile['bio'] as String?;
+          final location = profile['location'] as String?;
+          final company = profile['company'] as String?;
+          final expYears = profile['experience_years'];
           final portfolioUrl = profile['portfolio_url'] as String?;
-          final linkedinUrl  = profile['linkedin_url'] as String?;
+          final linkedinUrl = profile['linkedin_url'] as String?;
           final skills = (profile['skills'] as List? ?? [])
               .map((s) => s.toString())
               .toList();
           final isClient = role == 'client';
+          final userId = profile['id'] as String;
+
           final initials = name.trim().isNotEmpty
               ? name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
               : '?';
 
           return CustomScrollView(
             slivers: [
-
-              // ── App Bar ─────────────────────────────────
+              // ── Header SliverAppBar ─────────────────────
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: 220,
                 pinned: true,
+                automaticallyImplyLeading: false,
                 backgroundColor: AppColors.primary,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
@@ -86,76 +88,72 @@ class ProfilePage extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const SizedBox(height: 16),
-
-                          // Avatar
-                          CircleAvatar(
-                            radius: 38,
-                            backgroundColor: Colors.white24,
-                            child: Text(
-                              initials,
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                          // Avatar with edit overlay
+                          Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 40,
+                                backgroundColor: Colors.white24,
+                                child: Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
+                              GestureDetector(
+                                onTap: () => context.push('/profile/edit'),
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit,
+                                    size: 14,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 10),
-
-                          // Name
                           Text(
                             name.isNotEmpty ? name : 'No name set',
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 20,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
                             ),
                           ),
-
-                          // Headline or role badge
                           const SizedBox(height: 4),
                           if (headline != null && headline.isNotEmpty)
-                            Text(
-                              headline,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFFCCEEEC),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                              child: Text(
+                                headline,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFFCCEEEC),
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              textAlign: TextAlign.center,
                             )
                           else
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white24,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                isClient ? 'Client' : 'Freelancer',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
+                            _RoleBadge(isClient: isClient),
                         ],
                       ),
                     ),
                   ),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                    onPressed: () =>
-                        context.push('/profile/edit'),
-                    tooltip: 'Edit Profile',
-                  ),
-                ],
               ),
 
-              // ── Body ────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -163,7 +161,13 @@ class ProfilePage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
 
-                      // ── Info chips row ─────────────────
+                      // ── Stats Row (freelancer only) ─────
+                      if (!isClient) ...[
+                        _FreelancerStatsRow(userId: userId),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // ── Info Chips ──────────────────────
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -173,9 +177,7 @@ class ProfilePage extends ConsumerWidget {
                               icon: Icons.location_on_outlined,
                               label: location,
                             ),
-                          if (isClient &&
-                              company != null &&
-                              company.isNotEmpty)
+                          if (isClient && company != null && company.isNotEmpty)
                             _InfoChip(
                               icon: Icons.business_outlined,
                               label: company,
@@ -193,7 +195,7 @@ class ProfilePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // ── Bio ────────────────────────────
+                      // ── About ───────────────────────────
                       if (bio != null && bio.isNotEmpty) ...[
                         _SectionTitle('About'),
                         const SizedBox(height: 8),
@@ -208,7 +210,7 @@ class ProfilePage extends ConsumerWidget {
                         const SizedBox(height: 24),
                       ],
 
-                      // ── Skills (freelancer only) ───────
+                      // ── Skills (freelancer only) ────────
                       if (!isClient && skills.isNotEmpty) ...[
                         _SectionTitle('Skills'),
                         const SizedBox(height: 10),
@@ -216,49 +218,24 @@ class ProfilePage extends ConsumerWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: skills
-                              .map(
-                                (skill) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight,
-                                borderRadius:
-                                BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.2)),
-                              ),
-                              child: Text(
-                                skill,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          )
+                              .map((skill) => _SkillChip(skill: skill))
                               .toList(),
                         ),
                         const SizedBox(height: 24),
                       ],
 
-                      // ── Links ──────────────────────────
-                      if ((portfolioUrl != null &&
-                          portfolioUrl.isNotEmpty) ||
-                          (linkedinUrl != null &&
-                              linkedinUrl.isNotEmpty)) ...[
+                      // ── Links ───────────────────────────
+                      if ((portfolioUrl != null && portfolioUrl.isNotEmpty) ||
+                          (linkedinUrl != null && linkedinUrl.isNotEmpty)) ...[
                         _SectionTitle('Links'),
                         const SizedBox(height: 10),
-                        if (portfolioUrl != null &&
-                            portfolioUrl.isNotEmpty)
+                        if (portfolioUrl != null && portfolioUrl.isNotEmpty)
                           _LinkTile(
                             icon: Icons.language_outlined,
                             label: 'Portfolio',
                             url: portfolioUrl,
                           ),
-                        if (linkedinUrl != null &&
-                            linkedinUrl.isNotEmpty)
+                        if (linkedinUrl != null && linkedinUrl.isNotEmpty)
                           _LinkTile(
                             icon: Icons.link_outlined,
                             label: 'LinkedIn',
@@ -267,7 +244,7 @@ class ProfilePage extends ConsumerWidget {
                         const SizedBox(height: 24),
                       ],
 
-                      // ── Role badge ─────────────────────
+                      // ── Role Badge ──────────────────────
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
@@ -301,7 +278,7 @@ class ProfilePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // ── Edit Profile button ────────────
+                      // ── Edit Profile Button ─────────────
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -312,7 +289,7 @@ class ProfilePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      // ── Sign out ───────────────────────
+                      // ── Sign Out ────────────────────────
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
@@ -325,16 +302,13 @@ class ProfilePage extends ConsumerWidget {
                             }
                           },
                           icon: const Icon(Icons.logout,
-                              size: 18,
-                              color: AppColors.textSecondary),
+                              size: 18, color: AppColors.textSecondary),
                           label: const Text(
                             'Sign out',
-                            style:
-                            TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                                color: AppColors.shadow),
+                            side: const BorderSide(color: AppColors.shadow),
                           ),
                         ),
                       ),
@@ -346,6 +320,135 @@ class ProfilePage extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Freelancer Stats Row (own profile)
+// ─────────────────────────────────────────────────────────────
+class _FreelancerStatsRow extends ConsumerWidget {
+  final String userId;
+  const _FreelancerStatsRow({required this.userId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(freelancerStatsProvider(userId));
+
+    return statsAsync.when(
+      loading: () => Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.shadow),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: AppColors.primary),
+        ),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (stats) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.shadow),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _StatItem(
+              value: '${stats['totalProposals']}',
+              label: 'Proposals',
+              color: AppColors.primary,
+            ),
+            _Divider(),
+            _StatItem(
+              value: '${stats['activeProjects']}',
+              label: 'Active',
+              color: const Color(0xFFF59E0B),
+            ),
+            _Divider(),
+            _StatItem(
+              value: '${stats['completedProjects']}',
+              label: 'Completed',
+              color: const Color(0xFF2E7D32),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 36,
+      width: 1,
+      color: AppColors.shadow,
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+  const _StatItem(
+      {required this.value, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Role Badge (in header)
+// ─────────────────────────────────────────────────────────────
+class _RoleBadge extends StatelessWidget {
+  final bool isClient;
+  const _RoleBadge({required this.isClient});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        isClient ? 'Client' : 'Freelancer',
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -377,7 +480,6 @@ class _SectionTitle extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
-
   const _InfoChip({required this.icon, required this.label});
 
   @override
@@ -408,18 +510,42 @@ class _InfoChip extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Skill Chip
+// ─────────────────────────────────────────────────────────────
+class _SkillChip extends StatelessWidget {
+  final String skill;
+  const _SkillChip({required this.skill});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        skill,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Link Tile
 // ─────────────────────────────────────────────────────────────
 class _LinkTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String url;
-
-  const _LinkTile({
-    required this.icon,
-    required this.label,
-    required this.url,
-  });
+  const _LinkTile(
+      {required this.icon, required this.label, required this.url});
 
   @override
   Widget build(BuildContext context) {

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import 'proposals_provider.dart';
@@ -80,7 +81,7 @@ class ViewProposalsPage extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: proposals.length,
-            separatorBuilder: (e, s) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final proposal = proposals[index];
               return _ProposalCard(
@@ -121,17 +122,23 @@ class _ProposalCardState extends State<_ProposalCard> {
 
   Color get _statusColor {
     switch (widget.proposal['status']) {
-      case 'accepted': return const Color(0xFF2E7D32);
-      case 'rejected': return const Color(0xFFD94F4F);
-      default:         return const Color(0xFFF59E0B);
+      case 'accepted':
+        return const Color(0xFF2E7D32);
+      case 'rejected':
+        return const Color(0xFFD94F4F);
+      default:
+        return const Color(0xFFF59E0B);
     }
   }
 
   String get _statusLabel {
     switch (widget.proposal['status']) {
-      case 'accepted': return 'Accepted';
-      case 'rejected': return 'Rejected';
-      default:         return 'Pending';
+      case 'accepted':
+        return 'Accepted';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return 'Pending';
     }
   }
 
@@ -243,10 +250,12 @@ class _ProposalCardState extends State<_ProposalCard> {
   Widget build(BuildContext context) {
     final freelancer =
     widget.proposal['freelancer'] as Map<String, dynamic>?;
+    final freelancerId = widget.proposal['freelancer_id'] as String?;
     final name = freelancer?['name'] ?? 'Freelancer';
     final headline = freelancer?['headline'] as String?;
     final location = freelancer?['location'] as String?;
     final expYears = freelancer?['experience_years'];
+    final completedProjects = freelancer?['completed_projects_count'] as int?;
     final skills = (freelancer?['skills'] as List? ?? [])
         .map((s) => s.toString())
         .toList();
@@ -271,58 +280,78 @@ class _ProposalCardState extends State<_ProposalCard> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppColors.primaryLight,
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'F',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
+                // Avatar — tappable → public profile
+                GestureDetector(
+                  onTap: freelancerId != null
+                      ? () => context.push('/profile/$freelancerId')
+                      : null,
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: AppColors.primaryLight,
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'F',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
 
-                // Name + headline
+                // Name + headline + location — tappable → public profile
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      if (headline != null && headline.isNotEmpty)
-                        Text(
-                          headline,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      if (location != null && location.isNotEmpty)
+                  child: GestureDetector(
+                    onTap: freelancerId != null
+                        ? () => context.push('/profile/$freelancerId')
+                        : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Row(
                           children: [
-                            const Icon(Icons.location_on_outlined,
-                                size: 12,
-                                color: AppColors.textSecondary),
                             Text(
-                              location,
+                              name,
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: AppColors.textPrimary,
                               ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.open_in_new,
+                              size: 13,
+                              color: AppColors.primary,
                             ),
                           ],
                         ),
-                    ],
+                        if (headline != null && headline.isNotEmpty)
+                          Text(
+                            headline,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        if (location != null && location.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined,
+                                  size: 12,
+                                  color: AppColors.textSecondary),
+                              Text(
+                                location,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -347,22 +376,29 @@ class _ProposalCardState extends State<_ProposalCard> {
             ),
           ),
 
-          // ── Bid + Experience ─────────────────────────
+          // ── Bid + Experience + Completed Projects ────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _InfoPill(
                   icon: Icons.attach_money,
                   label: '\$$bidAmount',
                   color: AppColors.primary,
                 ),
-                const SizedBox(width: 8),
                 if (expYears != null)
                   _InfoPill(
                     icon: Icons.workspace_premium_outlined,
                     label: '$expYears yrs exp',
                     color: AppColors.textSecondary,
+                  ),
+                if (completedProjects != null)
+                  _InfoPill(
+                    icon: Icons.check_circle_outline,
+                    label: '$completedProjects completed',
+                    color: const Color(0xFF2E7D32),
                   ),
               ],
             ),
@@ -432,7 +468,8 @@ class _ProposalCardState extends State<_ProposalCard> {
                   Text(
                     coverLetter,
                     maxLines: _expanded ? null : 2,
-                    overflow: _expanded ? null : TextOverflow.ellipsis,
+                    overflow:
+                    _expanded ? null : TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -444,6 +481,27 @@ class _ProposalCardState extends State<_ProposalCard> {
             ),
           ),
           const SizedBox(height: 16),
+
+          // ── View Profile Button ───────────────────────
+          if (freelancerId != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      context.push('/profile/$freelancerId'),
+                  icon: const Icon(Icons.person_outline, size: 16),
+                  label: const Text('View Full Profile'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
 
           // ── Action Buttons (only if pending) ──────────
           if (isPending)

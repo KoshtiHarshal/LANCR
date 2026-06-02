@@ -12,6 +12,7 @@ import '../../features/projects/presentation/browse_projects_page.dart';
 import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/post_project_page.dart';
 import '../../features/profiles/presentation/edit_profile_page.dart';
+import '../../features/profiles/presentation/public_profile_page.dart';
 import '../../features/projects/presentation/project_detail_page.dart';
 import '../../features/projects/presentation/submit_proposal_page.dart';
 import '../presentation/main_shell_page.dart';
@@ -141,7 +142,6 @@ final routerProvider = Provider((ref) {
         path: '/client/projects',
         builder: (context, state) => const ClientProjectsPage(),
       ),
-      // ✅ Single correct /projects/:id route (duplicate removed)
       GoRoute(
         path: '/projects/:id',
         builder: (context, state) => ProjectDetailPage(
@@ -160,9 +160,18 @@ final routerProvider = Provider((ref) {
           projectId: state.pathParameters['id']!,
         ),
       ),
+
+      // ── Profiles ──────────────────────────────────────────
       GoRoute(
         path: '/profile/edit',
         builder: (context, state) => const EditProfilePage(),
+      ),
+      // ✅ Public freelancer profile — push with back button
+      GoRoute(
+        path: '/profile/:id',
+        builder: (context, state) => PublicProfilePage(
+          userId: state.pathParameters['id']!,
+        ),
       ),
     ],
   );
