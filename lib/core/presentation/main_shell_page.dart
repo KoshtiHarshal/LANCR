@@ -8,6 +8,7 @@ import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/client_projects_page.dart';
 import '../../features/projects/presentation/freelancer_home_page.dart';
 import '../../features/proposals/presentation/my_proposals_page.dart';
+import '../../features/messages/presentation/conversations_page.dart';
 import '../theme/app_colors.dart';
 import '../../main.dart';
 import '../../features/profiles/presentation/profile_page.dart';
@@ -52,7 +53,7 @@ class MainShellPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
-    final roleAsync    = ref.watch(roleProvider);
+    final roleAsync = ref.watch(roleProvider);
 
     return roleAsync.when(
       loading: () => const Scaffold(
@@ -70,16 +71,17 @@ class MainShellPage extends ConsumerWidget {
         // ── Pages ──────────────────────────────────────
         final pages = isClient
             ? [
-          const ClientHomePage(),       // 0 - Home
-          const ClientProjectsPage(),   // 1 - My Projects ✅ (was placeholder)
-          const _PlaceholderPage(label: 'Messages'), // 2
-          const ProfilePage(),
+          const ClientHomePage(),     // 0 - Home
+          const ClientProjectsPage(), // 1 - My Projects
+          const ConversationsPage(),  // 2 - Messages
+          const ProfilePage(),        // 3 - Profile
         ]
             : [
-          const FreelancerHomePage(),   // 0 - Home
-          const BrowseProjectsPage(),   // 1 - Browse Projects
-          const MyProposalsPage(),      // 2 - My Proposals ✅ (was placeholder)
-          const ProfilePage(), // 3
+          const FreelancerHomePage(), // 0 - Home
+          const BrowseProjectsPage(), // 1 - Browse Projects
+          const MyProposalsPage(),    // 2 - My Proposals
+          const ConversationsPage(),  // 3 - Messages ← ADDED
+          const ProfilePage(),        // 4 - Profile
         ];
 
         // ── Nav items ──────────────────────────────────
@@ -120,7 +122,12 @@ class MainShellPage extends ConsumerWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.send_outlined),
             activeIcon: Icon(Icons.send),
-            label: 'Proposals',  // ✅ renamed from Messages
+            label: 'Proposals',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline), // ← ADDED
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Messages',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -149,11 +156,11 @@ class MainShellPage extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Placeholder page (Messages / Profile — coming soon)
+// Placeholder page (fallback — kept for future use)
 // ─────────────────────────────────────────────────────────────
-class _PlaceholderPage extends StatelessWidget {
+class PlaceholderPage extends StatelessWidget {
   final String label;
-  const _PlaceholderPage({required this.label});
+  const PlaceholderPage({required this.label, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +172,8 @@ class _PlaceholderPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.construction_outlined,
-                size: 48, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+                size: 48,
+                color: AppColors.textSecondary.withValues(alpha: 0.4)),
             const SizedBox(height: 12),
             Text(
               '$label – coming soon',

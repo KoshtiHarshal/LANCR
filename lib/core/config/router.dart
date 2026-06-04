@@ -17,7 +17,9 @@ import '../../features/projects/presentation/project_detail_page.dart';
 import '../../features/proposals/presentation/submit_proposal_page.dart';
 import '../../features/proposals/presentation/view_proposals_page.dart';
 import '../../features/projects/presentation/client_projects_page.dart';
-import '../../features/projects/presentation/project_completion_page.dart'; // ← NEW
+import '../../features/projects/presentation/project_completion_page.dart';
+import '../../features/messages/presentation/conversations_page.dart';
+import '../../features/messages/presentation/chat_page.dart';
 import '../presentation/main_shell_page.dart';
 import '../../../main.dart';
 
@@ -161,8 +163,6 @@ final routerProvider = Provider((ref) {
           projectId: state.pathParameters['id']!,
         ),
       ),
-
-      // ── Project Completion ← NEW ───────────────────────────
       GoRoute(
         path: '/projects/:id/completion',
         builder: (context, state) => ProjectCompletionPage(
@@ -172,13 +172,27 @@ final routerProvider = Provider((ref) {
 
       // ── Profiles ──────────────────────────────────────────
       GoRoute(
-        path: '/profile/edit',          // ← must come BEFORE /profile/:id
+        path: '/profile/edit', // ← must come BEFORE /profile/:id
         builder: (context, state) => const EditProfilePage(),
       ),
       GoRoute(
         path: '/profile/:id',
         builder: (context, state) => PublicProfilePage(
           userId: state.pathParameters['id']!,
+        ),
+      ),
+
+      // ── Messaging ─────────────────────────────────────────
+      GoRoute(
+        path: '/messages',
+        builder: (context, state) => const ConversationsPage(),
+      ),
+      GoRoute(
+        path: '/messages/:id',  // ← keep only this one
+        builder: (context, state) => ChatPage(
+          conversationId: state.pathParameters['id']!,
+          otherPersonName: (state.extra as Map?)?['otherPersonName'] ?? '',
+          projectTitle: (state.extra as Map?)?['projectTitle'] ?? '',
         ),
       ),
     ],

@@ -35,9 +35,9 @@ Color _statusColor(String status) {
 
 Color _statusBg(String status) {
   switch (status) {
-    case 'open':      return const Color(0xFF2E7D32).withOpacity(0.1);
-    case 'closed':    return const Color(0xFF1565C0).withOpacity(0.1);
-    case 'completed': return const Color(0xFF6A1B9A).withOpacity(0.1);
+    case 'open':      return const Color(0xFF2E7D32).withValues(alpha: 0.1); // ✅ fixed
+    case 'closed':    return const Color(0xFF1565C0).withValues(alpha: 0.1); // ✅ fixed
+    case 'completed': return const Color(0xFF6A1B9A).withValues(alpha: 0.1); // ✅ fixed
     default:          return AppColors.shadow;
   }
 }
@@ -124,7 +124,7 @@ class ClientProjectsPage extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: projects.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            separatorBuilder: (_,index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final project = projects[index];
               final status = project['status'] ?? 'open';
@@ -216,8 +216,7 @@ class ClientProjectsPage extends ConsumerWidget {
                           TextButton.icon(
                             onPressed: () => context.push(
                                 '/projects/${project['id']}/proposals'),
-                            icon: const Icon(Icons.people_outline,
-                                size: 16),
+                            icon: const Icon(Icons.people_outline, size: 16),
                             label: const Text('Proposals'),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.primary,
