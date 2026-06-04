@@ -5,7 +5,7 @@ A full-stack mobile application connecting freelancers with clients. Built with 
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)
 ![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart)
-![Status](https://img.shield  s.io/badge/Status-In%20Progress-F59E0B)
+![Status](https://img.shields.io/badge/Status-In%20Progress-F59E0B)
 
 ---
 
@@ -21,23 +21,25 @@ A full-stack mobile application connecting freelancers with clients. Built with 
 - **Authentication** — Email/password login and registration via Supabase Auth
 - **Role Selection** — Users choose Freelancer or Client on first login
 - **Edit Profile** — Name, headline, bio, skills, location, experience, portfolio & LinkedIn URLs
+- **Public Profile Page** — Freelancer profile visible to clients with stats (proposals, active, completed)
 - **Client Home** — Dashboard with posted projects overview
-- **Post a Project** — Clients can post projects with title, description, budget, skills, and duration
-- **Browse Projects** — Freelancers can browse open projects with skill-based filtering
-- **Project Detail** — Full project view with client info, budget, duration, and required skills
+- **Post a Project** — Clients post projects with title, description, budget, and required skills
+- **Browse Projects** — Freelancers browse open projects with search and skill-based filtering
+- **Project Detail** — Full project view with client info, budget, and required skills
 - **Submit Proposal** — Freelancers submit a cover letter and bid amount
-- **Proposal Status** — Freelancers can track proposal status (Pending / Accepted / Rejected)
-
-### 🔲 In Progress
-- **View Proposals** — Clients can view all proposals on their project and Accept/Reject
-- **My Proposals Tab** — Freelancers can track all their submitted proposals
-- **My Projects Tab** — Clients can manage all their posted projects
+- **My Proposals Tab** — Freelancers track all submitted proposals with stats strip (Total / Pending / Accepted / Rejected)
+- **View Proposals** — Clients view all proposals on their project and Accept/Reject
+- **My Projects Tab** — Clients manage all their posted projects
+- **Real-time Messaging** — In-app chat between client and freelancer after proposal is accepted
+   - Conversation auto-created on proposal acceptance
+   - Real-time message delivery via Supabase Realtime
+   - Messages tab available for both Client and Freelancer
 
 ### 📋 Planned
-- **Notifications** — Real-time alerts for proposal updates
-- **Messaging** — In-app chat between freelancer and client
-- **Reviews & Ratings** — Post-project feedback system
-- **Search & Filters** — Advanced project search by budget, duration, skills
+- **Project Completion Flow** — Client marks project as done; updates freelancer stats
+- **Reviews & Ratings** — Post-project feedback system shown on public profile
+- **Notifications** — Real-time alerts for proposal accepted/rejected and new messages
+- **Advanced Search & Filters** — Filter projects by budget range, skills, location
 
 ---
 
@@ -50,6 +52,7 @@ A full-stack mobile application connecting freelancers with clients. Built with 
 | Navigation | GoRouter |
 | Backend / Database | Supabase (PostgreSQL) |
 | Authentication | Supabase Auth |
+| Realtime | Supabase Realtime (WebSockets) |
 | Storage | Supabase Storage |
 
 ---
@@ -81,11 +84,10 @@ A full-stack mobile application connecting freelancers with clients. Built with 
 | client_id | uuid | References profiles |
 | title | text | Project title |
 | description | text | Full description |
-| budget_min | int | Minimum budget (USD) |
-| budget_max | int | Maximum budget (USD) |
-| skills | text[] | Required skills |
-| duration | text | Project timeline |
-| status | text | `open` or `closed` |
+| budget_min | numeric | Minimum budget (USD) |
+| budget_max | numeric | Maximum budget (USD) |
+| required_skills | text[] | Required skills |
+| status | text | `open`, `closed`, `completed` |
 | created_at | timestamptz | Posted time |
 
 ### `proposals`
@@ -93,48 +95,116 @@ A full-stack mobile application connecting freelancers with clients. Built with 
 |---|---|---|
 | id | uuid | Primary key |
 | project_id | uuid | References projects |
-| freelancer_id | uuid | References auth.users |
+| freelancer_id | uuid | References profiles |
 | cover_letter | text | Proposal message |
 | bid_amount | numeric | Proposed price (USD) |
-| status | text | `pending`, `accepted`, `rejected` |
+| status | text | `pending`, `accepted`, `rejected`, `completed` |
 | created_at | timestamptz | Submitted time |
+
+### `conversations`
+| Column | Type | Description |
+|---|---|---|
+| id | uuid | Primary key |
+| project_id | uuid | References projects |
+| client_id | uuid | References profiles |
+| freelancer_id | uuid | References profiles |
+| last_message | text | Preview of latest message |
+| last_message_at | timestamptz | Time of latest message |
+| created_at | timestamptz | Conversation start time |
+
+### `messages`
+| Column | Type | Description |
+|---|---|---|
+| id | uuid | Primary key |
+| conversation_id | uuid | References conversations |
+| sender_id | uuid | References profiles |
+| content | text | Message text |
+| created_at | timestamptz | Sent time |
 
 ---
 
 ## 📁 Project Structure
-lib/
-├── core/
-│ ├── presentation/
-│ │ └── main_shell_page.dart # Bottom nav shell
-│ ├── router/
-│ │ └── router.dart # GoRouter config
-│ └── theme/
-│ ├── app_colors.dart
-│ └── app_theme.dart
-├── features/
-│ ├── auth/
-│ │ └── presentation/
-│ │ ├── auth_provider.dart
-│ │ ├── login_page.dart
-│ │ └── register_page.dart
-│ ├── onboarding/
-│ │ └── presentation/
-│ │ └── role_selection_page.dart
-│ ├── profiles/
-│ │ └── presentation/
-│ │ ├── profile_provider.dart
-│ │ └── edit_profile_page.dart
-│ └── projects/
-│ └── presentation/
-│ ├── browse_projects_page.dart
-│ ├── browse_projects_provider.dart
-│ ├── client_home_page.dart
-│ ├── freelancer_home_page.dart
-│ ├── post_project_page.dart
-│ ├── project_detail_page.dart
-│ ├── project_detail_provider.dart
-│ └── submit_proposal_page.dart
-└── main.dart
+lib/  
+│   
+├── core/   
+│ ├── config/    
+│ │ ├── env.dart   
+│ │ └── router.dart # GoRouter config   
+│ ├── models/   
+│ │ └── user.dart   
+│ ├── presentation/  
+│ │ └── main_shell_page.dart # Bottom nav shell (Client: 4 tabs, Freelancer: 5 tabs)   
+│ └── theme/  
+│   ├── app_colors.dart  
+│   └── app_theme.dart  
+│   
+├── features/    
+│ ├── auth/  
+│ │ └── presentation/  
+│ │   ├── auth_provider.dart  
+│ │   ├── login_page.dart  
+│ │   └── register_page.dart    
+│ ├── onboarding/   
+│ │ └── presentation/   
+│ │    └── role_selection_page.dart   
+│ ├── profiles/   
+│ │ └── presentation/     
+│ │   ├── profile_provider.dart   
+│ │   ├── profile_page.dart   
+│ │   ├── public_profile_page.dart   
+│ │   └── edit_profile_page.dart    
+│ ├── projects/   
+│ │ └── presentation/   
+│ │   ├── client_home_page.dart   
+│ │   ├── client_projects_page.dart   
+│ │   ├── freelancer_home_page.dart   
+│ │   ├── freelancer_home_provider.dart  
+│ │   ├── browse_projects_page.dart   
+│ │   ├── browse_projects_provider.dart    
+│ │   ├── post_project_page.dart  
+│ │   ├── project_detail_page.dart   
+│ │   ├── project_completion_page.dart  
+│ │   ├── project_completion_provider.dart  
+│ │   ├── proposals_provider.dart   
+│ │   └── project_detail_provider.dart   
+│ ├── proposals/    
+│ │ └── presentation/  
+│ │ │ ├── view_proposals_page.dart  
+│ │ │ ├── submit_proposal_page.dart      
+│ │ │ ├── my_proposals_page.dart  
+│ │ │ └── my_proposals_provider.dart  
+│ │ └── data/   
+│ │     └── proposals_repository.dart     
+│ └── messages/   
+│   └── presentation/   
+│     ├── conversations_page.dart    
+│     ├── chat_page.dart  
+│     ├── conversations_provider.dart   
+│     └── messages_provider.dart   
+│   
+└── main.dart   
+
+
+---
+
+## 🧭 Navigation Routes
+
+| Route | Page | Access |
+|---|---|---|
+| `/` | SplashPage | All |
+| `/auth/login` | LoginPage | Public |
+| `/auth/register` | RegisterPage | Public |
+| `/onboarding/role` | RoleSelectionPage | New users |
+| `/home` | MainShellPage | Authenticated |
+| `/projects/post` | PostProjectPage | Client |
+| `/projects/browse` | BrowseProjectsPage | Freelancer |
+| `/client/projects` | ClientProjectsPage | Client |
+| `/projects/:id` | ProjectDetailPage | All |
+| `/projects/:id/submit-proposal` | SubmitProposalPage | Freelancer |
+| `/projects/:id/proposals` | ViewProposalsPage | Client |
+| `/profile/edit` | EditProfilePage | All |
+| `/profile/:id` | PublicProfilePage | All |
+| `/messages/:id` | ChatPage | All |
 
 ---
 
@@ -149,7 +219,7 @@ lib/
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/your-username/lancr_app.git
+   git clone https://github.com/KoshtiHarshal/lancr_app.git
    cd lancr_app
    ```
 
@@ -160,11 +230,13 @@ lib/
 
 3. **Configure Supabase**
 
-   Copy the example config and fill in your keys:
-   ```bash
-   cp lib/core/config/env.example.dart lib/core/config/env.dart
+   Update `lib/main.dart` with your Supabase URL and anon key:
+   ```dart
+   await Supabase.initialize(
+     url: 'YOUR_SUPABASE_URL',
+     anonKey: 'YOUR_SUPABASE_ANON_KEY',
+   );
    ```
-   Then edit `env.dart` with your actual Supabase URL and anon key.
 
 4. **Run the app**
    ```bash
@@ -178,7 +250,8 @@ lib/
 - Row Level Security (RLS) enabled on all tables
 - Freelancers can only view and submit their own proposals
 - Clients can only view proposals on their own projects
-- Profile data is protected per user via `auth.uid()`
+- Conversations and messages restricted to participant users only
+- Profile data protected per user via `auth.uid()`
 
 ---
 
