@@ -1,4 +1,4 @@
-// lib/core/router/router.dart
+// lib/core/config/router.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,11 +14,12 @@ import '../../features/projects/presentation/post_project_page.dart';
 import '../../features/profiles/presentation/edit_profile_page.dart';
 import '../../features/profiles/presentation/public_profile_page.dart';
 import '../../features/projects/presentation/project_detail_page.dart';
-import '../../features/projects/presentation/submit_proposal_page.dart';
+import '../../features/proposals/presentation/submit_proposal_page.dart';
+import '../../features/proposals/presentation/view_proposals_page.dart';
+import '../../features/projects/presentation/client_projects_page.dart';
+import '../../features/projects/presentation/project_completion_page.dart'; // ← NEW
 import '../presentation/main_shell_page.dart';
 import '../../../main.dart';
-import '../../features/projects/presentation/view_proposals_page.dart';
-import '../../features/projects/presentation/client_projects_page.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Splash / entry screen
@@ -161,12 +162,19 @@ final routerProvider = Provider((ref) {
         ),
       ),
 
+      // ── Project Completion ← NEW ───────────────────────────
+      GoRoute(
+        path: '/projects/:id/completion',
+        builder: (context, state) => ProjectCompletionPage(
+          projectId: state.pathParameters['id']!,
+        ),
+      ),
+
       // ── Profiles ──────────────────────────────────────────
       GoRoute(
-        path: '/profile/edit',
+        path: '/profile/edit',          // ← must come BEFORE /profile/:id
         builder: (context, state) => const EditProfilePage(),
       ),
-      // ✅ Public freelancer profile — push with back button
       GoRoute(
         path: '/profile/:id',
         builder: (context, state) => PublicProfilePage(

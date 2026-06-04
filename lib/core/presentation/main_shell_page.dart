@@ -7,7 +7,7 @@ import '../../features/projects/presentation/browse_projects_page.dart';
 import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/client_projects_page.dart';
 import '../../features/projects/presentation/freelancer_home_page.dart';
-import '../../features/projects/presentation/my_proposals_page.dart';
+import '../../features/proposals/presentation/my_proposals_page.dart';
 import '../theme/app_colors.dart';
 import '../../main.dart';
 import '../../features/profiles/presentation/profile_page.dart';

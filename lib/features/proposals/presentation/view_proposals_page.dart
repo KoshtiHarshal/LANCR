@@ -1,11 +1,15 @@
-// lib/features/projects/presentation/view_proposals_page.dart
+// lib/features/proposals/presentation/view_proposals_page.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
-import 'proposals_provider.dart';
+import '../../projects/presentation/proposals_provider.dart';
+import '../../projects/presentation/project_detail_provider.dart';
+import '../../proposals//presentation/my_proposals_provider.dart';
+import '../../profiles/presentation/profile_provider.dart';
+import '../../projects/presentation/client_home_page.dart'; // for clientProjectsCountProvider etc.
 
 class ViewProposalsPage extends ConsumerWidget {
   final String projectId;
@@ -14,6 +18,23 @@ class ViewProposalsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final proposalsAsync = ref.watch(projectProposalsProvider(projectId));
+
+    // BUG 1 + 2 + 3 FIX: invalidate ALL stale providers after any action
+    void invalidateAll() {
+      // Proposals list on this page
+      ref.invalidate(projectProposalsProvider(projectId));
+      // Bug 1: freelancer's proposal status card on ProjectDetailPage
+      ref.invalidate(existingProposalProvider(projectId));
+      // Bug 1: project status badge on ProjectDetailPage
+      ref.invalidate(projectDetailProvider(projectId));
+      // Bug 2: freelancer home stats + my proposals list
+      ref.invalidate(myProposalsProvider);
+      ref.invalidate(freelancerStatsProvider);
+      // Bug 3: client home dashboard counts
+      ref.invalidate(clientProjectsCountProvider);
+      ref.invalidate(clientProposalsCountProvider);
+      ref.invalidate(clientCompletedCountProvider);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -81,14 +102,14 @@ class ViewProposalsPage extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: proposals.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final proposal = proposals[index];
               return _ProposalCard(
                 proposal: proposal,
                 projectId: projectId,
-                onAction: () =>
-                    ref.invalidate(projectProposalsProvider(projectId)),
+                // Pass the full invalidation callback
+                onAction: invalidateAll,
               );
             },
           );
@@ -99,7 +120,7 @@ class ViewProposalsPage extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Proposal Card
+// Proposal Card (unchanged except _complete snack text)
 // ─────────────────────────────────────────────────────────────
 class _ProposalCard extends StatefulWidget {
   final Map<String, dynamic> proposal;
@@ -123,6 +144,8 @@ class _ProposalCardState extends State<_ProposalCard> {
   Color get _statusColor {
     switch (widget.proposal['status']) {
       case 'accepted':
+        return const Color(0xFF1565C0);
+      case 'completed':
         return const Color(0xFF2E7D32);
       case 'rejected':
         return const Color(0xFFD94F4F);
@@ -134,7 +157,9 @@ class _ProposalCardState extends State<_ProposalCard> {
   String get _statusLabel {
     switch (widget.proposal['status']) {
       case 'accepted':
-        return 'Accepted';
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
       case 'rejected':
         return 'Rejected';
       default:
@@ -161,8 +186,9 @@ class _ProposalCardState extends State<_ProposalCard> {
         freelancerId: widget.proposal['freelancer_id'],
       );
       if (mounted) {
-        _showSnack('Proposal accepted! Project is now closed.', success: true);
-        widget.onAction();
+        _showSnack('Proposal accepted! Project is now in progress.',
+            success: true);
+        widget.onAction(); // invalidates all stale providers
       }
     } catch (e) {
       if (mounted) _showSnack('Failed: $e', success: false);
@@ -195,6 +221,34 @@ class _ProposalCardState extends State<_ProposalCard> {
     }
   }
 
+  Future<void> _complete() async {
+    final confirm = await _showConfirmDialog(
+      context,
+      title: 'Mark as Complete?',
+      message:
+      'This will mark the project as completed. This action cannot be undone.',
+      confirmLabel: 'Complete',
+      confirmColor: const Color(0xFF2E7D32),
+    );
+    if (!confirm) return;
+
+    setState(() => _loading = true);
+    try {
+      await completeProject(
+        projectId: widget.projectId,
+        proposalId: widget.proposal['id'],
+      );
+      if (mounted) {
+        _showSnack('Project marked as completed! 🎉', success: true);
+        widget.onAction(); // invalidates all stale providers including client completed count
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Failed: $e', success: false);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   void _showSnack(String msg, {required bool success}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -202,8 +256,7 @@ class _ProposalCardState extends State<_ProposalCard> {
         backgroundColor:
         success ? AppColors.primary : const Color(0xFFD94F4F),
         behavior: SnackBarBehavior.floating,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
       ),
     );
@@ -235,8 +288,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: confirmColor),
+            style: ElevatedButton.styleFrom(backgroundColor: confirmColor),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(confirmLabel),
           ),
@@ -248,14 +300,12 @@ class _ProposalCardState extends State<_ProposalCard> {
 
   @override
   Widget build(BuildContext context) {
-    final freelancer =
-    widget.proposal['freelancer'] as Map<String, dynamic>?;
+    final freelancer = widget.proposal['freelancer'] as Map?;
     final freelancerId = widget.proposal['freelancer_id'] as String?;
     final name = freelancer?['name'] ?? 'Freelancer';
     final headline = freelancer?['headline'] as String?;
     final location = freelancer?['location'] as String?;
     final expYears = freelancer?['experience_years'];
-    final completedProjects = freelancer?['completed_projects_count'] as int?;
     final skills = (freelancer?['skills'] as List? ?? [])
         .map((s) => s.toString())
         .toList();
@@ -263,6 +313,7 @@ class _ProposalCardState extends State<_ProposalCard> {
     final coverLetter = widget.proposal['cover_letter'] ?? '';
     final status = widget.proposal['status'] ?? 'pending';
     final isPending = status == 'pending';
+    final isAccepted = status == 'accepted';
 
     return Container(
       decoration: BoxDecoration(
@@ -273,14 +324,12 @@ class _ProposalCardState extends State<_ProposalCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           // ── Header ──────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar — tappable → public profile
                 GestureDetector(
                   onTap: freelancerId != null
                       ? () => context.push('/profile/$freelancerId')
@@ -299,8 +348,6 @@ class _ProposalCardState extends State<_ProposalCard> {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Name + headline + location — tappable → public profile
                 Expanded(
                   child: GestureDetector(
                     onTap: freelancerId != null
@@ -320,33 +367,27 @@ class _ProposalCardState extends State<_ProposalCard> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
-                              Icons.open_in_new,
-                              size: 13,
-                              color: AppColors.primary,
-                            ),
+                            const Icon(Icons.open_in_new,
+                                size: 13, color: AppColors.primary),
                           ],
                         ),
                         if (headline != null && headline.isNotEmpty)
                           Text(
                             headline,
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
+                                fontSize: 12,
+                                color: AppColors.textSecondary),
                           ),
                         if (location != null && location.isNotEmpty)
                           Row(
                             children: [
                               const Icon(Icons.location_on_outlined,
-                                  size: 12,
-                                  color: AppColors.textSecondary),
+                                  size: 12, color: AppColors.textSecondary),
                               Text(
                                 location,
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary),
                               ),
                             ],
                           ),
@@ -354,8 +395,6 @@ class _ProposalCardState extends State<_ProposalCard> {
                     ),
                   ),
                 ),
-
-                // Status badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
@@ -376,7 +415,7 @@ class _ProposalCardState extends State<_ProposalCard> {
             ),
           ),
 
-          // ── Bid + Experience + Completed Projects ────
+          // ── Bid + Experience ─────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Wrap(
@@ -384,22 +423,14 @@ class _ProposalCardState extends State<_ProposalCard> {
               runSpacing: 8,
               children: [
                 _InfoPill(
-                  icon: Icons.attach_money,
-                  label: '\$$bidAmount',
-                  color: AppColors.primary,
-                ),
+                    icon: Icons.attach_money,
+                    label: '\$$bidAmount',
+                    color: AppColors.primary),
                 if (expYears != null)
                   _InfoPill(
-                    icon: Icons.workspace_premium_outlined,
-                    label: '$expYears yrs exp',
-                    color: AppColors.textSecondary,
-                  ),
-                if (completedProjects != null)
-                  _InfoPill(
-                    icon: Icons.check_circle_outline,
-                    label: '$completedProjects completed',
-                    color: const Color(0xFF2E7D32),
-                  ),
+                      icon: Icons.workspace_premium_outlined,
+                      label: '$expYears yrs exp',
+                      color: AppColors.textSecondary),
               ],
             ),
           ),
@@ -414,23 +445,19 @@ class _ProposalCardState extends State<_ProposalCard> {
                 runSpacing: 6,
                 children: skills
                     .take(4)
-                    .map(
-                      (s) => Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.shadow),
-                    ),
-                    child: Text(
-                      s,
+                    .map((s) => Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.shadow),
+                  ),
+                  child: Text(s,
                       style: const TextStyle(
                           fontSize: 11,
-                          color: AppColors.textSecondary),
-                    ),
-                  ),
-                )
+                          color: AppColors.textSecondary)),
+                ))
                     .toList(),
               ),
             ),
@@ -503,23 +530,24 @@ class _ProposalCardState extends State<_ProposalCard> {
             ),
           const SizedBox(height: 12),
 
-          // ── Action Buttons (only if pending) ──────────
-          if (isPending)
+          // ── Action Buttons ────────────────────────────
+          if (isPending || isAccepted)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: _loading
                   ? const Center(
-                child: CircularProgressIndicator(
-                    color: AppColors.primary),
-              )
-                  : Row(
+                  child: CircularProgressIndicator(
+                      color: AppColors.primary))
+                  : isPending
+                  ? Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
                             color: Color(0xFFD94F4F)),
-                        foregroundColor: const Color(0xFFD94F4F),
+                        foregroundColor:
+                        const Color(0xFFD94F4F),
                       ),
                       onPressed: _reject,
                       child: const Text('Reject'),
@@ -529,17 +557,33 @@ class _ProposalCardState extends State<_ProposalCard> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E7D32),
-                      ),
+                          backgroundColor:
+                          const Color(0xFF2E7D32)),
                       onPressed: _accept,
                       child: const Text('Accept'),
                     ),
                   ),
                 ],
+              )
+                  : SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12),
+                  ),
+                  onPressed: _complete,
+                  icon: const Icon(
+                      Icons.check_circle_outline,
+                      size: 18),
+                  label: const Text('Mark as Complete'),
+                ),
               ),
             ),
 
-          if (!isPending) const SizedBox(height: 4),
+          if (status == 'completed' || status == 'rejected')
+            const SizedBox(height: 4),
         ],
       ),
     );

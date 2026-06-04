@@ -14,7 +14,8 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
   try {
     final data = await supabase
         .from('projects')
-        .select('id, title, description, status, budget_min, budget_max, created_at')
+        .select(
+        'id, title, description, status, budget_min, budget_max, created_at')
         .eq('client_id', user.id)
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(data as List);
@@ -22,6 +23,33 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
     throw Exception('Failed to load projects: $e');
   }
 });
+
+Color _statusColor(String status) {
+  switch (status) {
+    case 'open':      return const Color(0xFF2E7D32);
+    case 'closed':    return const Color(0xFF1565C0);
+    case 'completed': return const Color(0xFF6A1B9A);
+    default:          return AppColors.textSecondary;
+  }
+}
+
+Color _statusBg(String status) {
+  switch (status) {
+    case 'open':      return const Color(0xFF2E7D32).withOpacity(0.1);
+    case 'closed':    return const Color(0xFF1565C0).withOpacity(0.1);
+    case 'completed': return const Color(0xFF6A1B9A).withOpacity(0.1);
+    default:          return AppColors.shadow;
+  }
+}
+
+String _statusLabel(String status) {
+  switch (status) {
+    case 'open':      return 'Open';
+    case 'closed':    return 'In Progress';
+    case 'completed': return 'Completed';
+    default:          return status.toUpperCase();
+  }
+}
 
 class ClientProjectsPage extends ConsumerWidget {
   const ClientProjectsPage({super.key});
@@ -96,15 +124,13 @@ class ClientProjectsPage extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: projects.length,
-            separatorBuilder: (e, s) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final project = projects[index];
-              final status  = project['status'] ?? 'open';
-              final isOpen  = status == 'open';
+              final status = project['status'] ?? 'open';
 
               return GestureDetector(
-                onTap: () =>
-                    context.push('/projects/${project['id']}'),
+                onTap: () => context.push('/projects/${project['id']}'),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -116,7 +142,7 @@ class ClientProjectsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
 
-                      // Title + status
+                      // ── Title + Status badge ──────────────
                       Row(
                         children: [
                           Expanded(
@@ -134,19 +160,15 @@ class ClientProjectsPage extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isOpen
-                                  ? AppColors.primaryLight
-                                  : AppColors.shadow,
+                              color: _statusBg(status),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              status.toUpperCase(),
+                              _statusLabel(status),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: isOpen
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
+                                color: _statusColor(status),
                               ),
                             ),
                           ),
@@ -154,7 +176,7 @@ class ClientProjectsPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      // Description preview
+                      // ── Description preview ───────────────
                       Text(
                         project['description'] ?? '',
                         maxLines: 2,
@@ -167,7 +189,7 @@ class ClientProjectsPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      // Budget + View Proposals button
+                      // ── Budget + Actions ──────────────────
                       Row(
                         children: [
                           if (project['budget_min'] != null ||
@@ -190,13 +212,13 @@ class ClientProjectsPage extends ConsumerWidget {
                             ),
                           const Spacer(),
 
-                          // ✅ View Proposals button
+                          // View Proposals button
                           TextButton.icon(
                             onPressed: () => context.push(
-                              '/projects/${project['id']}/proposals',
-                            ),
-                            icon: const Icon(Icons.people_outline, size: 16),
-                            label: const Text('View Proposals'),
+                                '/projects/${project['id']}/proposals'),
+                            icon: const Icon(Icons.people_outline,
+                                size: 16),
+                            label: const Text('Proposals'),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.primary,
                               padding: EdgeInsets.zero,

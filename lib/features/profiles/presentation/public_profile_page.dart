@@ -269,7 +269,7 @@ class _PublicStatsRow extends ConsumerWidget {
               strokeWidth: 2, color: AppColors.primary),
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (stats) => Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(

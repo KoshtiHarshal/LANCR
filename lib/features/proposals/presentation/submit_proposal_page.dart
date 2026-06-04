@@ -1,4 +1,4 @@
-// lib/features/projects/presentation/submit_proposal_page.dart
+// lib/features/proposals/presentation/submit_proposal_page.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
-import 'project_detail_provider.dart';
+import '../../projects/presentation/project_detail_provider.dart'; // ← updated path
 
 class SubmitProposalPage extends ConsumerStatefulWidget {
   final String projectId;
@@ -18,9 +18,9 @@ class SubmitProposalPage extends ConsumerStatefulWidget {
 }
 
 class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
-  final _formKey        = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final _coverLetterCtrl = TextEditingController();
-  final _bidAmountCtrl  = TextEditingController();
+  final _bidAmountCtrl = TextEditingController();
   bool _submitting = false;
 
   @override
@@ -39,31 +39,31 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
       if (user == null) throw Exception('Not logged in');
 
       await supabase.from('proposals').insert({
-        'project_id':    widget.projectId,
+        'project_id': widget.projectId,
         'freelancer_id': user.id,
-        'cover_letter':  _coverLetterCtrl.text.trim(),
-        'bid_amount':    double.parse(_bidAmountCtrl.text.trim()),
-        'status':        'pending',
+        'cover_letter': _coverLetterCtrl.text.trim(),
+        'bid_amount': double.parse(_bidAmountCtrl.text.trim()),
+        'status': 'pending',
       });
 
       if (!mounted) return;
 
+      // Invalidate so project detail re-checks if user already applied
       ref.invalidate(existingProposalProvider(widget.projectId));
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.check_circle_outline,
-                  color: Colors.white, size: 18),
+              Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
               SizedBox(width: 8),
               Text('Proposal submitted successfully!'),
             ],
           ),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -71,6 +71,7 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
       context.pop();
     } catch (e) {
       if (!mounted) return;
+
       final msg = e.toString().contains('unique')
           ? 'You already submitted a proposal for this project.'
           : 'Failed to submit: ${e.toString().replaceFirst('Exception: ', '')}';
@@ -79,16 +80,15 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error_outline,
-                  color: Colors.white, size: 18),
+              const Icon(Icons.error_outline, color: Colors.white, size: 18),
               const SizedBox(width: 8),
               Expanded(child: Text(msg)),
             ],
           ),
           backgroundColor: const Color(0xFFD94F4F),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -155,18 +155,16 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _bidAmountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true),
+                keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.attach_money),
                   hintText: 'e.g. 500',
                 ),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Enter your bid amount';
-                  if (double.tryParse(v) == null)
-                    {return 'Enter a valid number';}
-                  if (double.parse(v) <= 0)
-                    {return 'Bid must be greater than 0';}
+                  if (double.tryParse(v) == null) return 'Enter a valid number';
+                  if (double.parse(v) <= 0) return 'Bid must be greater than 0';
                   return null;
                 },
               ),
@@ -184,23 +182,24 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
               const SizedBox(height: 4),
               const Text(
                 "Explain why you're the best fit for this project.",
-                style: TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
+                style:
+                TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _coverLetterCtrl,
                 maxLines: 7,
                 decoration: const InputDecoration(
-                  hintText:
-                  "Hi, I'm interested in this project because...",
+                  hintText: "Hi, I'm interested in this project because...",
                   alignLabelWithHint: true,
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty)
-                    {return 'Please write a cover letter';}
-                  if (v.trim().length < 30)
-                    {return 'Cover letter too short (min 30 characters)';}
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Please write a cover letter';
+                  }
+                  if (v.trim().length < 30) {
+                    return 'Cover letter too short (min 30 characters)';
+                  }
                   return null;
                 },
               ),
@@ -211,8 +210,8 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
                 width: double.infinity,
                 child: _submitting
                     ? const Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary),
+                  child:
+                  CircularProgressIndicator(color: AppColors.primary),
                 )
                     : ElevatedButton.icon(
                   onPressed: _submit,

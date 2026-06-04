@@ -1,4 +1,4 @@
-// lib/features/projects/presentation/my_proposals_page.dart
+// lib/features/proposals/presentation/my_proposals_page.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,8 +33,7 @@ class MyProposalsPage extends ConsumerWidget {
                 child: Text(
                   e.toString().replaceFirst('Exception: ', ''),
                   textAlign: TextAlign.center,
-                  style:
-                  const TextStyle(color: AppColors.textSecondary),
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               const SizedBox(height: 16),
@@ -51,11 +50,9 @@ class MyProposalsPage extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.send_outlined,
-                    size: 64,
-                    color: AppColors.textSecondary.withValues(alpha: 0.4),
-                  ),
+                  Icon(Icons.send_outlined,
+                      size: 64,
+                      color: AppColors.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
                   const Text(
                     'No proposals yet',
@@ -83,14 +80,10 @@ class MyProposalsPage extends ConsumerWidget {
             );
           }
 
-          final total    = proposals.length;
-          final pending  = proposals.where((p) => p['status'] == 'pending').length;
-          final accepted = proposals.where((p) => p['status'] == 'accepted').length;
-          final rejected = proposals.where((p) => p['status'] == 'rejected').length;
+          final stats = ref.watch(myProposalStatsProvider);
 
           return Column(
             children: [
-
               // ── Stats Strip ──────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -104,10 +97,22 @@ class MyProposalsPage extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _StatPill(label: 'Total',    value: '$total',    color: AppColors.primary),
-                    _StatPill(label: 'Pending',  value: '$pending',  color: const Color(0xFFF59E0B)),
-                    _StatPill(label: 'Accepted', value: '$accepted', color: const Color(0xFF2E7D32)),
-                    _StatPill(label: 'Rejected', value: '$rejected', color: const Color(0xFFD94F4F)),
+                    _StatPill(
+                        label: 'Total',
+                        value: '${stats['total']}',
+                        color: AppColors.primary),
+                    _StatPill(
+                        label: 'Pending',
+                        value: '${stats['pending']}',
+                        color: const Color(0xFFF59E0B)),
+                    _StatPill(
+                        label: 'Active',
+                        value: '${stats['accepted']}',
+                        color: const Color(0xFF1565C0)),
+                    _StatPill(
+                        label: 'Done',
+                        value: '${stats['completed']}',
+                        color: const Color(0xFF2E7D32)),
                   ],
                 ),
               ),
@@ -117,7 +122,7 @@ class MyProposalsPage extends ConsumerWidget {
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: proposals.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                   const SizedBox(height: 12),
                   itemBuilder: (context, index) =>
                       _ProposalCard(proposal: proposals[index]),
@@ -152,17 +157,12 @@ class _StatPill extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
+              fontSize: 20, fontWeight: FontWeight.w800, color: color),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-              fontSize: 11, color: AppColors.textSecondary),
-        ),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 11, color: AppColors.textSecondary)),
       ],
     );
   }
@@ -172,7 +172,7 @@ class _StatPill extends StatelessWidget {
 // Proposal Card
 // ─────────────────────────────────────────────────────────────
 class _ProposalCard extends StatefulWidget {
-  final Map proposal;
+  final Map<String, dynamic> proposal;
   const _ProposalCard({required this.proposal});
 
   @override
@@ -184,48 +184,50 @@ class _ProposalCardState extends State<_ProposalCard> {
 
   Color get _statusColor {
     switch (widget.proposal['status']) {
-      case 'accepted': return const Color(0xFF2E7D32);
-      case 'rejected': return const Color(0xFFD94F4F);
-      default:         return const Color(0xFFF59E0B);
+      case 'accepted':  return const Color(0xFF1565C0);
+      case 'completed': return const Color(0xFF2E7D32);
+      case 'rejected':  return const Color(0xFFD94F4F);
+      default:          return const Color(0xFFF59E0B);
     }
   }
 
   IconData get _statusIcon {
     switch (widget.proposal['status']) {
-      case 'accepted': return Icons.check_circle_outline;
-      case 'rejected': return Icons.cancel_outlined;
-      default:         return Icons.hourglass_top_outlined;
+      case 'accepted':  return Icons.timelapse;
+      case 'completed': return Icons.check_circle_outline;
+      case 'rejected':  return Icons.cancel_outlined;
+      default:          return Icons.hourglass_top_outlined;
     }
   }
 
   String get _statusLabel {
     switch (widget.proposal['status']) {
-      case 'accepted': return 'Accepted';
-      case 'rejected': return 'Rejected';
-      default:         return 'Pending';
+      case 'accepted':  return 'In Progress';
+      case 'completed': return 'Completed';
+      case 'rejected':  return 'Rejected';
+      default:          return 'Pending';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final project     = widget.proposal['project'] as Map?;
-    final title       = project?['title'] ?? 'Project';
+    final project = widget.proposal['project'] as Map?;
+    final title = project?['title'] ?? 'Project';
     final description = project?['description'] ?? '';
-    final budgetMin   = project?['budget_min'];
-    final budgetMax   = project?['budget_max'];
-    final projStatus  = project?['status'] ?? 'open';
-    final bidAmount   = widget.proposal['bid_amount'];
+    final bidAmount = widget.proposal['bid_amount'];
     final coverLetter = widget.proposal['cover_letter'] ?? '';
-    final status      = widget.proposal['status'] ?? 'pending';
-    final projectId   = widget.proposal['project_id'] as String?;
+    final status = widget.proposal['status'] ?? 'pending';
+    final projectId = widget.proposal['project_id'] as String?;
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: status == 'accepted'
+          color: status == 'completed'
               ? const Color(0xFF2E7D32).withValues(alpha: 0.3)
+              : status == 'accepted'
+              ? const Color(0xFF1565C0).withValues(alpha: 0.2)
               : status == 'rejected'
               ? const Color(0xFFD94F4F).withValues(alpha: 0.2)
               : AppColors.shadow,
@@ -234,8 +236,7 @@ class _ProposalCardState extends State<_ProposalCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // ── Project Title + Status badge ──────────────
+          // ── Title + Status badge ──────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
@@ -285,7 +286,7 @@ class _ProposalCardState extends State<_ProposalCard> {
           ),
           const SizedBox(height: 6),
 
-          // ── Project description preview ───────────────
+          // ── Description preview ───────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -293,185 +294,79 @@ class _ProposalCardState extends State<_ProposalCard> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  height: 1.5),
             ),
           ),
           const SizedBox(height: 10),
 
-          // ── Budget + Bid + Project status ─────────────
+          // ── Bid amount ────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                if (budgetMin != null || budgetMax != null)
-                  _Chip(
-                    label: 'Budget: \$$budgetMin–\$$budgetMax',
-                    color: AppColors.textSecondary,
-                    bgColor: AppColors.background,
-                  ),
-                const SizedBox(width: 8),
-                _Chip(
-                  label: 'Your bid: \$$bidAmount',
-                  color: AppColors.primary,
-                  bgColor: AppColors.primaryLight,
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: projStatus == 'open'
-                        ? AppColors.primaryLight
-                        : AppColors.shadow,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    projStatus.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: projStatus == 'open'
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                    ),
+                const Icon(Icons.payments_outlined,
+                    size: 14, color: AppColors.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Your bid: \$${bidAmount ?? '—'}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // ── Cover Letter (expandable) ─────────────────
-          GestureDetector(
+          InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(16)),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       const Text(
-                        'Your Cover Letter',
+                        'Cover Letter',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: AppColors.textSecondary,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 4),
                       Icon(
                         _expanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        size: 18,
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        size: 16,
                         color: AppColors.textSecondary,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    coverLetter,
-                    maxLines: _expanded ? null : 2,
-                    overflow:
-                    _expanded ? null : TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                      height: 1.5,
+                  if (_expanded) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      coverLetter,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.6),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
           ),
-
-          // ── Accepted Banner + View Button ─────────────
-          if (status == 'accepted') ...[
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: const Color(0xFF2E7D32)
-                        .withValues(alpha: 0.25)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.celebration_outlined,
-                      color: Color(0xFF2E7D32), size: 18),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '🎉 Congratulations! You\'re hired.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF2E7D32),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: projectId != null
-                      ? () => context.push('/projects/$projectId')
-                      : null,
-                  icon: const Icon(Icons.arrow_forward, size: 16),
-                  label: const Text('View Active Project'),
-                ),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 16),
         ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Small chip
-// ─────────────────────────────────────────────────────────────
-class _Chip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color bgColor;
-
-  const _Chip({
-    required this.label,
-    required this.color,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.shadow),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
       ),
     );
   }

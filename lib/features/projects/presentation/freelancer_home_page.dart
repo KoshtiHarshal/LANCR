@@ -141,7 +141,7 @@ class FreelancerHomePage extends ConsumerWidget {
                   const SizedBox(width: 8),
                   StatCard(icon: Icons.account_balance_wallet_outlined, value: '\$0', label: 'Earnings'),
                 ]),
-                error: (_, __) => Row(children: [
+                error: (_, _) => Row(children: [
                   StatCard(icon: Icons.work_outline,     value: '0', label: 'Active\nProjects'),
                   const SizedBox(width: 8),
                   StatCard(icon: Icons.send_outlined,    value: '0', label: 'Proposals\nSent'),
@@ -241,7 +241,7 @@ class FreelancerHomePage extends ConsumerWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: activeList.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                     const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item    = activeList[index];

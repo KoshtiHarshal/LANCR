@@ -8,7 +8,6 @@ import '../../auth/presentation/auth_provider.dart';
 import '../../profiles/presentation/profile_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
-import 'freelancer_home_page.dart'; // StatCard lives here
 
 // ── Open projects count ──────────────────────────────────────
 final clientProjectsCountProvider = FutureProvider<int>((ref) async {
@@ -31,7 +30,6 @@ final clientProposalsCountProvider = FutureProvider<int>((ref) async {
   final user = supabase.auth.currentUser;
   if (user == null) return 0;
   try {
-    // Get all project IDs belonging to this client
     final projects = await supabase
         .from('projects')
         .select('id')
@@ -43,7 +41,6 @@ final clientProposalsCountProvider = FutureProvider<int>((ref) async {
 
     if (projectIds.isEmpty) return 0;
 
-    // Count all proposals on those projects
     final proposals = await supabase
         .from('proposals')
         .select('id')
@@ -56,6 +53,10 @@ final clientProposalsCountProvider = FutureProvider<int>((ref) async {
 });
 
 // ── Completed projects count ─────────────────────────────────
+// BUG 3 FIX: was previously querying status = 'closed'.
+// acceptProposal sets status → 'closed' (in-progress).
+// completeProject sets status → 'completed' (done).
+// This provider must query 'completed', not 'closed'.
 final clientCompletedCountProvider = FutureProvider<int>((ref) async {
   final user = supabase.auth.currentUser;
   if (user == null) return 0;
@@ -64,310 +65,444 @@ final clientCompletedCountProvider = FutureProvider<int>((ref) async {
         .from('projects')
         .select('id')
         .eq('client_id', user.id)
-        .eq('status', 'closed');
+        .eq('status', 'completed'); // ← was 'closed' — fixed
     return (data as List).length;
   } catch (_) {
     return 0;
   }
 });
 
-// ────────────────────────────────────────────────────────────
-class ClientHomePage extends ConsumerWidget {
+// ─────────────────────────────────────────────────────────────
+// Client Home Page
+// BUG 3 FIX: Changed to ConsumerStatefulWidget so we can
+// invalidate dashboard providers when we pop back from
+// ClientProjectsPage or ViewProposalsPage.
+// ─────────────────────────────────────────────────────────────
+class ClientHomePage extends ConsumerStatefulWidget {
   const ClientHomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user             = ref.watch(authProvider).value;
-    final profileAsync     = ref.watch(profileProvider);
-    final projectCountAsync   = ref.watch(clientProjectsCountProvider);
-    final proposalCountAsync  = ref.watch(clientProposalsCountProvider);
+  ConsumerState<ClientHomePage> createState() => _ClientHomePageState();
+}
+
+class _ClientHomePageState extends ConsumerState<ClientHomePage> {
+  // BUG 3 FIX: push helper that invalidates dashboard counts on pop
+  Future<void> _pushAndRefresh(String route) async {
+    await context.push(route);
+    if (!mounted) return;
+    ref.invalidate(clientProjectsCountProvider);
+    ref.invalidate(clientProposalsCountProvider);
+    ref.invalidate(clientCompletedCountProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileAsync = ref.watch(profileProvider);
+    final openCountAsync = ref.watch(clientProjectsCountProvider);
+    final proposalsCountAsync = ref.watch(clientProposalsCountProvider);
     final completedCountAsync = ref.watch(clientCompletedCountProvider);
+
+    final name = profileAsync.asData?.value?['name'] ?? 'there';
+    final firstName = name.split(' ').first;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Lancr'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: GestureDetector(
-              onTap: () {
-                // TODO: navigate to profile
-              },
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundColor: AppColors.primaryLight,
-                child: Icon(Icons.person_outline,
-                    color: AppColors.primary, size: 20),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            // ── Hero Greeting Card ───────────────────────
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.white24,
-                    child: Icon(Icons.business_center, color: Colors.white),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () async {
+          ref.invalidate(clientProjectsCountProvider);
+          ref.invalidate(clientProposalsCountProvider);
+          ref.invalidate(clientCompletedCountProvider);
+          ref.invalidate(profileProvider);
+        },
+        child: CustomScrollView(
+          slivers: [
+            // ── Header ─────────────────────────────────
+            SliverToBoxAdapter(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, Color(0xFF007A75)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  borderRadius:
+                  BorderRadius.vertical(bottom: Radius.circular(28)),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                    20,
+                    MediaQuery.of(context).padding.top + 20,
+                    20,
+                    28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        profileAsync.when(
-                          data: (profile) => Text(
-                            'Hi, ${profile?['name'] ?? user?.email ?? ''}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hello, $firstName 👋',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Manage your projects & proposals',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
                           ),
-                          loading: () => const Text('Loading...',
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 15)),
-                          error: (e, s) => Text(user?.email ?? '',
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 15)),
                         ),
-                        const SizedBox(height: 4),
-                        profileAsync.when(
-                          data: (profile) {
-                            final company = profile?['company'];
-                            return Text(
-                              (company != null &&
-                                  company.toString().isNotEmpty)
-                                  ? company
-                                  : 'Post your first project →',
-                              style: const TextStyle(
-                                  color: Color(0xFFCCEEEC), fontSize: 13),
+                        IconButton(
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: AppColors.surface,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16)),
+                                title: const Text('Sign Out',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary)),
+                                content: const Text(
+                                    'Are you sure you want to sign out?',
+                                    style: TextStyle(
+                                        color: AppColors.textSecondary)),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(ctx, false),
+                                    child: const Text('Cancel',
+                                        style: TextStyle(
+                                            color: AppColors.textSecondary)),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                        const Color(0xFFD94F4F)),
+                                    onPressed: () =>
+                                        Navigator.pop(ctx, true),
+                                    child: const Text('Sign Out'),
+                                  ),
+                                ],
+                              ),
                             );
+                            if (confirm == true && mounted) {
+                              await ref
+                                  .read(authNotifierProvider.notifier)
+                                  .logout();
+                            }
                           },
-                          loading: () => const SizedBox.shrink(),
-                          error: (e, s) => const Text(
-                            'Post your first project →',
-                            style: TextStyle(
-                                color: Color(0xFFCCEEEC), fontSize: 13),
+                          icon: const Icon(Icons.logout_rounded,
+                              color: Colors.white70),
+                          tooltip: 'Sign out',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // ── Stats row ─────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Open Projects',
+                            valueAsync: openCountAsync,
+                            icon: Icons.work_outline,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Proposals',
+                            valueAsync: proposalsCountAsync,
+                            icon: Icons.inbox_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Completed',
+                            valueAsync: completedCountAsync,
+                            icon: Icons.check_circle_outline,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // ── Overview ─────────────────────────────────
-            const Text(
-              'Overview',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                // Open Projects
-                projectCountAsync.when(
-                  data: (count) => StatCard(
-                    icon: Icons.folder_open_outlined,
-                    value: '$count',
-                    label: 'Open\nProjects',
-                  ),
-                  loading: () => const StatCard(
-                    icon: Icons.folder_open_outlined,
-                    value: '—',
-                    label: 'Open\nProjects',
-                  ),
-                  error: (e, s) => const StatCard(
-                    icon: Icons.folder_open_outlined,
-                    value: '0',
-                    label: 'Open\nProjects',
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // ✅ Proposals Received — now live from DB
-                proposalCountAsync.when(
-                  data: (count) => StatCard(
-                    icon: Icons.people_outline,
-                    value: '$count',
-                    label: 'Proposals\nReceived',
-                  ),
-                  loading: () => const StatCard(
-                    icon: Icons.people_outline,
-                    value: '—',
-                    label: 'Proposals\nReceived',
-                  ),
-                  error: (e, s) => const StatCard(
-                    icon: Icons.people_outline,
-                    value: '0',
-                    label: 'Proposals\nReceived',
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // ✅ Projects Completed — now live from DB
-                completedCountAsync.when(
-                  data: (count) => StatCard(
-                    icon: Icons.check_circle_outline,
-                    value: '$count',
-                    label: 'Projects\nCompleted',
-                  ),
-                  loading: () => const StatCard(
-                    icon: Icons.check_circle_outline,
-                    value: '—',
-                    label: 'Projects\nCompleted',
-                  ),
-                  error: (e, s) => const StatCard(
-                    icon: Icons.check_circle_outline,
-                    value: '0',
-                    label: 'Projects\nCompleted',
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── Quick Actions ─────────────────────────────
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => context.push('/projects/post'),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Post a Project'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push('/client/projects'),
-                    icon: const Icon(Icons.manage_search, size: 18),
-                    label: const Text('My Projects'),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── Recent Activity ───────────────────────────
-            const Text(
-              'Recent Activity',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            proposalCountAsync.when(
-              data: (count) => count > 0
-                  ? Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: AppColors.primaryLight,
-                        child: Icon(Icons.notifications_active_outlined,
-                            color: AppColors.primary),
+            // ── Quick Actions ───────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          'You have $count proposal${count == 1 ? '' : 's'} waiting for review.',
-                          style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 13),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.add_circle_outline,
+                            label: 'Post a Project',
+                            subtitle: 'Find talented freelancers',
+                            onTap: () =>
+                                _pushAndRefresh('/projects/post'),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-                  : const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: AppColors.primaryLight,
-                        child: Icon(Icons.lightbulb_outline,
-                            color: AppColors.primary),
-                      ),
-                      SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          'No activity yet. Post a project to start receiving proposals from freelancers.',
-                          style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 13),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.folder_open_outlined,
+                            label: 'My Projects',
+                            subtitle: 'View & manage posts',
+                            // BUG 3 FIX: navigate with refresh so counts
+                            // update after returning from manage actions
+                            onTap: () =>
+                                _pushAndRefresh('/client/projects'),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              loading: () => const SizedBox.shrink(),
-              error: (e, s) => const SizedBox.shrink(),
             ),
 
-            const SizedBox(height: 24),
-
-            // ── Sign out ──────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  await ref.read(authNotifierProvider.notifier).logout();
-                  if (context.mounted) context.go('/auth/login');
-                },
-                icon: const Icon(Icons.logout,
-                    size: 18, color: AppColors.textSecondary),
-                label: const Text(
-                  'Sign out',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.shadow),
+            // ── Tips section ────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tips for Success',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _TipCard(
+                      icon: Icons.lightbulb_outline,
+                      title: 'Write clear descriptions',
+                      body:
+                      'Projects with detailed descriptions receive 3× more quality proposals.',
+                    ),
+                    const SizedBox(height: 10),
+                    _TipCard(
+                      icon: Icons.people_outline,
+                      title: 'Review profiles carefully',
+                      body:
+                      'Check experience, skills, and past work before accepting a proposal.',
+                    ),
+                    const SizedBox(height: 10),
+                    _TipCard(
+                      icon: Icons.star_outline,
+                      title: 'Set a realistic budget',
+                      body:
+                      'Competitive budgets attract top freelancers faster.',
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Stat Card (header pill inside gradient)
+// ─────────────────────────────────────────────────────────────
+class _StatCard extends StatelessWidget {
+  final String label;
+  final AsyncValue<int> valueAsync;
+  final IconData icon;
+
+  const _StatCard({
+    required this.label,
+    required this.valueAsync,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white, size: 20),
+          const SizedBox(height: 6),
+          valueAsync.when(
+            loading: () => const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2),
+            ),
+            error: (_, _) => const Text('–',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white)),
+            data: (v) => Text(
+              '$v',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 10, color: Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Action Card
+// ─────────────────────────────────────────────────────────────
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.shadow),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(height: 10),
+            Text(label,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 2),
+            Text(subtitle,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textSecondary)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tip Card
+// ─────────────────────────────────────────────────────────────
+class _TipCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const _TipCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.shadow),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(body,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -8,17 +8,30 @@ import '../../../core/theme/app_colors.dart';
 import '../../profiles/presentation/profile_provider.dart';
 import 'project_detail_provider.dart';
 
-class ProjectDetailPage extends ConsumerWidget {
+// BUG 1 FIX: Changed to ConsumerStatefulWidget so we can
+// re-invalidate existingProposalProvider when we pop back
+// from SubmitProposalPage or ViewProposalsPage.
+class ProjectDetailPage extends ConsumerStatefulWidget {
   final String projectId;
   const ProjectDetailPage({super.key, required this.projectId});
 
+  @override
+  ConsumerState<ProjectDetailPage> createState() => _ProjectDetailPageState();
+}
+
+class _ProjectDetailPageState extends ConsumerState<ProjectDetailPage> {
   String _formatDuration(String? raw) {
     switch (raw) {
-      case 'less_1_month':  return 'Less than 1 month';
-      case '1_3_months':    return '1–3 months';
-      case '3_6_months':    return '3–6 months';
-      case 'more_6_months': return '6+ months';
-      default:              return raw ?? 'Not specified';
+      case 'less_1_month':
+        return 'Less than 1 month';
+      case '1_3_months':
+        return '1–3 months';
+      case '3_6_months':
+        return '3–6 months';
+      case 'more_6_months':
+        return '6+ months';
+      default:
+        return raw ?? 'Not specified';
     }
   }
 
@@ -31,13 +44,24 @@ class ProjectDetailPage extends ConsumerWidget {
     return 'Up to \$$max';
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final projectAsync  = ref.watch(projectDetailProvider(projectId));
-    final profileAsync  = ref.watch(profileProvider);
-    final existingAsync = ref.watch(existingProposalProvider(projectId));
+  // BUG 1 FIX: Helper that pushes a route and invalidates
+  // existingProposalProvider + projectDetailProvider on return
+  // so the proposal status card always shows fresh data.
+  Future<void> _pushAndRefresh(String route) async {
+    await context.push(route);
+    if (!mounted) return;
+    ref.invalidate(existingProposalProvider(widget.projectId));
+    ref.invalidate(projectDetailProvider(widget.projectId));
+  }
 
-    final role     = profileAsync.asData?.value?['role'] ?? 'freelancer';
+  @override
+  Widget build(BuildContext context) {
+    final projectAsync = ref.watch(projectDetailProvider(widget.projectId));
+    final profileAsync = ref.watch(profileProvider);
+    final existingAsync =
+    ref.watch(existingProposalProvider(widget.projectId));
+
+    final role = profileAsync.asData?.value?['role'] ?? 'freelancer';
     final isClient = role == 'client';
 
     return Scaffold(
@@ -66,7 +90,7 @@ class ProjectDetailPage extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () =>
-                    ref.invalidate(projectDetailProvider(projectId)),
+                    ref.invalidate(projectDetailProvider(widget.projectId)),
                 child: const Text('Retry'),
               ),
             ],
@@ -76,10 +100,10 @@ class ProjectDetailPage extends ConsumerWidget {
           final skills = (project['skills'] as List? ?? [])
               .map((s) => s.toString())
               .toList();
-          final clientProfile  = project['profiles'] as Map?;
-          final clientName     = clientProfile?['name'] ?? 'Client';
+          final clientProfile = project['profiles'] as Map?;
+          final clientName = clientProfile?['name'] ?? 'Client';
           final clientLocation = clientProfile?['location'] as String?;
-          final clientCompany  = clientProfile?['company'] as String?;
+          final clientCompany = clientProfile?['company'] as String?;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -259,21 +283,26 @@ class ProjectDetailPage extends ConsumerWidget {
                 if (!isClient)
                   existingAsync.when(
                     loading: () => const SizedBox.shrink(),
-                    error: (e,s) => const SizedBox.shrink(),
+                    error: (e, s) => const SizedBox.shrink(),
                     data: (existing) {
                       if (existing != null) {
                         return _ProposalStatusBanner(
                           bidAmount: existing['bid_amount'],
+                          // BUG 1 FIX: status is now always fresh because
+                          // existingProposalProvider is invalidated by
+                          // ViewProposalsPage.onAction and by _pushAndRefresh
                           status: existing['status'] ?? 'pending',
                         );
                       }
                       return SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () => context.push(
-                              '/projects/$projectId/submit-proposal'),
-                          icon: const Icon(Icons.send_outlined,
-                              size: 18),
+                          // BUG 1 FIX: use _pushAndRefresh so if freelancer
+                          // submits a proposal and comes back, the banner
+                          // immediately shows 'Pending' instead of the button
+                          onPressed: () => _pushAndRefresh(
+                              '/projects/${widget.projectId}/submit-proposal'),
+                          icon: const Icon(Icons.send_outlined, size: 18),
                           label: const Text('Submit Proposal'),
                         ),
                       );
@@ -285,8 +314,10 @@ class ProjectDetailPage extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => context
-                          .push('/projects/$projectId/proposals'),
+                      // BUG 1 FIX: use _pushAndRefresh so projectDetailProvider
+                      // refreshes its status badge after client accepts/completes
+                      onPressed: () => _pushAndRefresh(
+                          '/projects/${widget.projectId}/proposals'),
                       icon: const Icon(Icons.people_outline, size: 18),
                       label: const Text('View Proposals'),
                     ),
@@ -372,23 +403,28 @@ class _ProposalStatusBanner extends StatelessWidget {
 
   Color get _color {
     switch (status) {
-      case 'accepted': return const Color(0xFF2E7D32);
-      case 'rejected': return const Color(0xFFD94F4F);
-      default:         return const Color(0xFFF59E0B);
+      case 'accepted':
+        return const Color(0xFF2E7D32);
+      case 'rejected':
+        return const Color(0xFFD94F4F);
+      default:
+        return const Color(0xFFF59E0B);
     }
   }
 
   IconData get _icon {
     switch (status) {
-      case 'accepted': return Icons.check_circle_outline;
-      case 'rejected': return Icons.cancel_outlined;
-      default:         return Icons.hourglass_top_outlined;
+      case 'accepted':
+        return Icons.check_circle_outline;
+      case 'rejected':
+        return Icons.cancel_outlined;
+      default:
+        return Icons.hourglass_top_outlined;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ── Accepted ─────────────────────────────────────
     if (status == 'accepted') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,8 +435,7 @@ class _ProposalStatusBanner extends StatelessWidget {
               color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                  color: const Color(0xFF2E7D32)
-                      .withValues(alpha: 0.3)),
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -437,7 +472,6 @@ class _ProposalStatusBanner extends StatelessWidget {
       );
     }
 
-    // ── Pending / Rejected ────────────────────────────
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
