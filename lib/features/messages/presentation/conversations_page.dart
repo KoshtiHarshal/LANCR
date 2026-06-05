@@ -197,6 +197,9 @@ class ConversationsPage extends ConsumerWidget {
                     extra: {
                       'otherPersonName': conv.otherPersonName,
                       'projectTitle': conv.projectTitle,
+                      'projectId': conv.projectId,
+                      'proposalId': conv.proposalId,
+                      'isClient': conv.isClient,
                     },
                   ),
                 );

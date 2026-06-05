@@ -10,6 +10,8 @@ class ConversationModel {
   final String otherPersonId;
   final String projectTitle;
   final String projectId;
+  final String? proposalId;
+  final bool isClient;
   final String? lastMessage;
   final DateTime? lastMessageAt;
 
@@ -19,6 +21,8 @@ class ConversationModel {
     required this.otherPersonId,
     required this.projectTitle,
     required this.projectId,
+    this.proposalId,
+    this.isClient = false,
     this.lastMessage,
     this.lastMessageAt,
   });
@@ -30,6 +34,7 @@ FutureProvider<List<ConversationModel>>((ref) async {
   final user = supabase.auth.currentUser;
   if (user == null) return [];
 
+  // Step 1: fetch conversations — NO proposals join
   final data = await supabase
       .from('conversations')
       .select('''
@@ -41,15 +46,39 @@ FutureProvider<List<ConversationModel>>((ref) async {
       .or('client_id.eq.${user.id},freelancer_id.eq.${user.id}')
       .order('last_message_at', ascending: false);
 
-  return (data as List).map((row) {
+  final rows = data as List;
+  if (rows.isEmpty) return [];
+
+  // Step 2: fetch accepted proposals for all project_ids in one query
+  final projectIds =
+  rows.map((r) => r['project_id'] as String).toSet().toList();
+
+  final proposals = await supabase
+      .from('proposals')
+      .select('id, project_id')
+      .inFilter('project_id', projectIds)
+      .eq('status', 'accepted');
+
+  // Build a map: project_id → proposal_id
+  final Map<String, String> proposalMap = {};
+  for (final p in (proposals as List)) {
+    proposalMap[p['project_id'] as String] = p['id'] as String;
+  }
+
+  // Step 3: map rows to ConversationModel
+  return rows.map((row) {
     final isClient = (row['client']['id'] == user.id);
     final other = isClient ? row['freelancer'] : row['client'];
+    final projectId = row['project_id'] as String;
+
     return ConversationModel(
       id: row['id'],
       otherPersonId: other['id'],
       otherPersonName: other['name'] ?? 'Unknown',
-      projectId: row['project_id'],
+      projectId: projectId,
       projectTitle: row['project']['title'] ?? '',
+      proposalId: proposalMap[projectId],
+      isClient: isClient,
       lastMessage: row['last_message'],
       lastMessageAt: row['last_message_at'] != null
           ? DateTime.parse(row['last_message_at'])
@@ -84,7 +113,6 @@ Future<void> sendMessage({
     'content': content,
   });
 
-  // Update last_message snapshot on conversation
   await supabase.from('conversations').update({
     'last_message': content,
     'last_message_at': DateTime.now().toIso8601String(),

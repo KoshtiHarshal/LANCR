@@ -188,12 +188,18 @@ final routerProvider = Provider((ref) {
         builder: (context, state) => const ConversationsPage(),
       ),
       GoRoute(
-        path: '/messages/:id',  // ← keep only this one
-        builder: (context, state) => ChatPage(
-          conversationId: state.pathParameters['id']!,
-          otherPersonName: (state.extra as Map?)?['otherPersonName'] ?? '',
-          projectTitle: (state.extra as Map?)?['projectTitle'] ?? '',
-        ),
+        path: '/messages/:id',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return ChatPage(
+            conversationId: state.pathParameters['id']!,  // ← was 'conversationId', fixed to 'id'
+            otherPersonName: extra['otherPersonName'] as String? ?? '',
+            projectTitle: extra['projectTitle'] as String? ?? '',
+            projectId: extra['projectId'] as String?,
+            proposalId: extra['proposalId'] as String?,
+            isClient: extra['isClient'] as bool? ?? false,
+          );
+        },
       ),
     ],
   );

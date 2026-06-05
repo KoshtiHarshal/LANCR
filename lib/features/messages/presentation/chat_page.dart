@@ -4,18 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
+import '../../projects/presentation/proposals_provider.dart';
 import 'messages_provider.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   final String conversationId;
   final String otherPersonName;
   final String projectTitle;
+  final String? projectId;    // ← NEW
+  final String? proposalId;   // ← NEW
+  final bool isClient;        // ← NEW
 
   const ChatPage({
     super.key,
     required this.conversationId,
     required this.otherPersonName,
     required this.projectTitle,
+    this.projectId,
+    this.proposalId,
+    this.isClient = false,
   });
 
   @override
@@ -26,6 +33,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   bool _sending = false;
+  bool _completing = false;
 
   @override
   void dispose() {
@@ -67,10 +75,126 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
+  // ── Mark project as complete ─────────────────────────────
+  Future<void> _markComplete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Mark as Complete?',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+        ),
+        content: const Text(
+          'This will mark the project as completed. This action cannot be undone.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Complete',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _completing = true);
+    try {
+      await completeProject(
+        projectId: widget.projectId!,
+        proposalId: widget.proposalId!,
+      );
+      if (mounted) {
+        _showCompletionSuccess();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to complete: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _completing = false);
+    }
+  }
+
+  void _showCompletionSuccess() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_circle_outline,
+                  color: Color(0xFF2E7D32), size: 36),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '🎉 Project Completed!',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Great work! The project has been marked as completed.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context); // go back from chat
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Done',
+                    style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
     final myId = supabase.auth.currentUser!.id;
+
+    final canComplete = widget.isClient &&
+        widget.projectId != null &&
+        widget.proposalId != null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -92,6 +216,29 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               ),
           ],
         ),
+        actions: [
+          if (canComplete)
+            _completing
+                ? const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    color: AppColors.primary, strokeWidth: 2),
+              ),
+            )
+                : TextButton.icon(
+              onPressed: _markComplete,
+              icon: const Icon(Icons.task_alt_outlined,
+                  size: 16, color: AppColors.primary),
+              label: const Text('Complete',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13)),
+            ),
+        ],
       ),
       body: Column(
         children: [

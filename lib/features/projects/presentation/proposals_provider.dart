@@ -1,4 +1,4 @@
-// lib/features/proposals/presentation/proposals_provider.dart
+// lib/features/projects/presentation/proposals_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../main.dart';
