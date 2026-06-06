@@ -24,7 +24,42 @@ import '../presentation/main_shell_page.dart';
 import '../../../main.dart';
 
 // ─────────────────────────────────────────────────────────────
-// Splash / entry screen
+// Reusable slide-up page transition
+// ─────────────────────────────────────────────────────────────
+CustomTransitionPage<void> _slideUpPage({
+  required BuildContext context,
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 400),
+    reverseTransitionDuration: const Duration(milliseconds: 350),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Slide up from bottom
+      final slideTween = Tween<Offset>(
+        begin: const Offset(0.0, 1.0),
+        end: Offset.zero,
+      ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+      // Fade in slightly for polish
+      final fadeTween = Tween<double>(begin: 0.0, end: 1.0)
+          .chain(CurveTween(curve: const Interval(0.0, 0.4)));
+
+      return FadeTransition(
+        opacity: animation.drive(fadeTween),
+        child: SlideTransition(
+          position: animation.drive(slideTween),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Splash screen
 // ─────────────────────────────────────────────────────────────
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
@@ -120,19 +155,19 @@ final routerProvider = Provider((ref) {
         builder: (context, state) => const RoleSelectionPage(),
       ),
 
-      // ── Main shell (bottom nav) ────────────────────────────
+      // ── Main shell ─────────────────────────────────────────
       GoRoute(
         path: '/home',
         builder: (context, state) => const MainShellPage(),
       ),
 
-      // ── Client ────────────────────────────────────────────
+      // ── Client ─────────────────────────────────────────────
       GoRoute(
         path: '/client/home',
         builder: (context, state) => const ClientHomePage(),
       ),
 
-      // ── Projects ──────────────────────────────────────────
+      // ── Projects ───────────────────────────────────────────
       GoRoute(
         path: '/projects/post',
         builder: (context, state) => const PostProjectPage(),
@@ -170,19 +205,27 @@ final routerProvider = Provider((ref) {
         ),
       ),
 
-      // ── Profiles ──────────────────────────────────────────
+      // ── Profiles — SLIDE UP transition ─────────────────────
       GoRoute(
-        path: '/profile/edit', // ← must come BEFORE /profile/:id
-        builder: (context, state) => const EditProfilePage(),
+        path: '/profile/edit', // ← must stay BEFORE /profile/:id
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: const EditProfilePage(),
+        ),
       ),
       GoRoute(
         path: '/profile/:id',
-        builder: (context, state) => PublicProfilePage(
-          userId: state.pathParameters['id']!,
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: PublicProfilePage(
+            userId: state.pathParameters['id']!,
+          ),
         ),
       ),
 
-      // ── Messaging ─────────────────────────────────────────
+      // ── Messaging ──────────────────────────────────────────
       GoRoute(
         path: '/messages',
         builder: (context, state) => const ConversationsPage(),
@@ -190,9 +233,9 @@ final routerProvider = Provider((ref) {
       GoRoute(
         path: '/messages/:id',
         builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final extra = state.extra as Map? ?? {};
           return ChatPage(
-            conversationId: state.pathParameters['id']!,  // ← was 'conversationId', fixed to 'id'
+            conversationId: state.pathParameters['id']!,
             otherPersonName: extra['otherPersonName'] as String? ?? '',
             projectTitle: extra['projectTitle'] as String? ?? '',
             projectId: extra['projectId'] as String?,

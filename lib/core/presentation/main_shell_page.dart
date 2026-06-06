@@ -68,7 +68,7 @@ class MainShellPage extends ConsumerWidget {
       data: (role) {
         final isClient = role == 'client';
 
-        // ── Pages ──────────────────────────────────────
+        // ── Pages ─────────────────────────────────────────
         final pages = isClient
             ? [
           const ClientHomePage(),     // 0 - Home
@@ -78,13 +78,13 @@ class MainShellPage extends ConsumerWidget {
         ]
             : [
           const FreelancerHomePage(), // 0 - Home
-          const BrowseProjectsPage(), // 1 - Browse Projects
-          const MyProposalsPage(),    // 2 - My Proposals
-          const ConversationsPage(),  // 3 - Messages ← ADDED
-          const ProfilePage(),        // 4 - Profile
+          const BrowseProjectsPage(), // 1 - Browse
+          const MyProposalsPage(),    // 2 - Proposals
+          const ConversationsPage(),  // 3 - Messages
+          // Profile removed — accessed via avatar in AppBar
         ];
 
-        // ── Nav items ──────────────────────────────────
+        // ── Nav items ─────────────────────────────────────
         final navItems = isClient
             ? const [
           BottomNavigationBarItem(
@@ -117,7 +117,7 @@ class MainShellPage extends ConsumerWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.work_outline),
             activeIcon: Icon(Icons.work),
-            label: 'Projects',
+            label: 'Browse',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.send_outlined),
@@ -125,21 +125,19 @@ class MainShellPage extends ConsumerWidget {
             label: 'Proposals',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline), // ← ADDED
+            icon: Icon(Icons.chat_bubble_outline),
             activeIcon: Icon(Icons.chat_bubble),
             label: 'Messages',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
         ];
 
+        // Guard: clamp index so switching roles never overflows
+        final safeIndex = currentIndex.clamp(0, pages.length - 1);
+
         return Scaffold(
-          body: pages[currentIndex],
+          body: pages[safeIndex],
           bottomNavigationBar: BottomNavigationBar(
-            currentIndex: currentIndex,
+            currentIndex: safeIndex,
             onTap: (idx) =>
                 ref.read(bottomNavIndexProvider.notifier).setIndex(idx),
             type: BottomNavigationBarType.fixed,
