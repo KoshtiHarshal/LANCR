@@ -12,8 +12,11 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
         .from('projects')
         .select(
       'id, title, description, budget_min, budget_max, '
-          'skills, duration, status, created_at, client_id',
+          'skills, duration, status, created_at, client_id, '
+          'profiles!client_id(name, company, location), '
+          'proposals(count)',
     )
+        .eq('status', 'open')
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(data as List);
   } catch (e) {
@@ -54,13 +57,13 @@ class SortNotifier extends Notifier<SortOption> {
 final sortOptionProvider =
 NotifierProvider<SortNotifier, SortOption>(SortNotifier.new);
 
-// ── Filter state (status + budget range + duration) ───────────
+// ── Filter state ──────────────────────────────────────────────
 @immutable
 class FilterState {
-  final String status;        // 'all' | 'open' | 'closed'
+  final String status;
   final double budgetMin;
   final double budgetMax;
-  final String duration;      // 'any' | 'less_1_month' | '1_3_months' | '3_6_months' | 'more_6_months'
+  final String duration;
 
   const FilterState({
     this.status = 'open',
@@ -93,13 +96,11 @@ class FilterNotifier extends Notifier<FilterState> {
   @override
   FilterState build() => const FilterState();
 
-  void setStatus(String s)       => state = state.copyWith(status: s);
-  void setBudgetMin(double v)    => state = state.copyWith(budgetMin: v);
-  void setBudgetMax(double v)    => state = state.copyWith(budgetMax: v);
+  void setStatus(String s) => state = state.copyWith(status: s);
   void setBudgetRange(double mn, double mx) =>
       state = state.copyWith(budgetMin: mn, budgetMax: mx);
-  void setDuration(String d)     => state = state.copyWith(duration: d);
-  void reset()                   => state = const FilterState();
+  void setDuration(String d) => state = state.copyWith(duration: d);
+  void reset() => state = const FilterState();
 }
 
 final filterProvider =

@@ -1,6 +1,7 @@
 // lib/core/presentation/main_shell_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/projects/presentation/browse_projects_page.dart';
@@ -47,11 +48,51 @@ final roleProvider = FutureProvider<String?>((ref) async {
 // ─────────────────────────────────────────────────────────────
 // Main Shell
 // ─────────────────────────────────────────────────────────────
-class MainShellPage extends ConsumerWidget {
+class MainShellPage extends ConsumerStatefulWidget {
   const MainShellPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainShellPage> createState() => _MainShellPageState();
+}
+
+class _MainShellPageState extends ConsumerState<MainShellPage> {
+  // Tracks when back was last pressed — for double-back-to-exit on Home
+  DateTime? _lastBackPress;
+
+  Future<bool> _onWillPop(int currentIndex) async {
+    // If NOT on Home tab → go to Home tab (index 0)
+    if (currentIndex != 0) {
+      ref.read(bottomNavIndexProvider.notifier).setIndex(0);
+      return false; // don't close app
+    }
+
+    // Already on Home tab — double press within 2s to exit
+    final now = DateTime.now();
+    if (_lastBackPress == null ||
+        now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+      _lastBackPress = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Press back again to exit'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppColors.textPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+      return false; // don't exit yet
+    }
+
+    // Second press within 2s → close app
+    await SystemNavigator.pop();
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
     final roleAsync = ref.watch(roleProvider);
 
@@ -68,23 +109,22 @@ class MainShellPage extends ConsumerWidget {
       data: (role) {
         final isClient = role == 'client';
 
-        // ── Pages ─────────────────────────────────────────
+        // ── Pages ──────────────────────────────────────────
         final pages = isClient
             ? [
-          const ClientHomePage(),     // 0 - Home
+          const ClientHomePage(),    // 0 - Home
           const ClientProjectsPage(), // 1 - My Projects
-          const ConversationsPage(),  // 2 - Messages
-          const ProfilePage(),        // 3 - Profile
+          const ConversationsPage(), // 2 - Messages
+          const ProfilePage(),       // 3 - Profile
         ]
             : [
-          const FreelancerHomePage(), // 0 - Home
-          const BrowseProjectsPage(), // 1 - Browse
-          const MyProposalsPage(),    // 2 - Proposals
-          const ConversationsPage(),  // 3 - Messages
-          // Profile removed — accessed via avatar in AppBar
+          const FreelancerHomePage(),  // 0 - Home
+          const BrowseProjectsPage(),  // 1 - Browse
+          const MyProposalsPage(),     // 2 - Proposals
+          const ConversationsPage(),   // 3 - Messages
         ];
 
-        // ── Nav items ─────────────────────────────────────
+        // ── Nav items ──────────────────────────────────────
         final navItems = isClient
             ? const [
           BottomNavigationBarItem(
@@ -131,21 +171,27 @@ class MainShellPage extends ConsumerWidget {
           ),
         ];
 
-        // Guard: clamp index so switching roles never overflows
         final safeIndex = currentIndex.clamp(0, pages.length - 1);
 
-        return Scaffold(
-          body: pages[safeIndex],
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: safeIndex,
-            onTap: (idx) =>
-                ref.read(bottomNavIndexProvider.notifier).setIndex(idx),
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppColors.primary,
-            unselectedItemColor: AppColors.textSecondary,
-            backgroundColor: AppColors.surface,
-            elevation: 8,
-            items: navItems,
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) return;
+            await _onWillPop(safeIndex);
+          },
+          child: Scaffold(
+            body: pages[safeIndex],
+            bottomNavigationBar: BottomNavigationBar(
+              currentIndex: safeIndex,
+              onTap: (idx) =>
+                  ref.read(bottomNavIndexProvider.notifier).setIndex(idx),
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: AppColors.textSecondary,
+              backgroundColor: AppColors.surface,
+              elevation: 8,
+              items: navItems,
+            ),
           ),
         );
       },
