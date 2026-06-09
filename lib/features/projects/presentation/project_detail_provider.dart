@@ -2,12 +2,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../main.dart';
+import 'package:flutter/foundation.dart';
 
 final projectDetailProvider =
 FutureProvider.family<Map<String, dynamic>, String>((ref, projectId) async {
   try {
-    // Fetch project row only — no join
-    final project = await supabase
+    final rawProject = await supabase
         .from('projects')
         .select(
       'id, title, description, budget_min, budget_max, '
@@ -16,24 +16,53 @@ FutureProvider.family<Map<String, dynamic>, String>((ref, projectId) async {
         .eq('id', projectId)
         .single();
 
-    // Fetch client profile separately — avoids FK name issues
+    // ✅ Force typed map — critical step
+    final project = Map<String, dynamic>.from(rawProject as Map);
     final clientId = project['client_id'] as String?;
+
     Map<String, dynamic>? profile;
+    int proposalCount = 0;
+
     if (clientId != null) {
       try {
-        profile = await supabase
+        final rawProfile = await supabase
             .from('profiles')
-            .select('name, location, company')
+            .select('id, name, location, company, bio, avatar_url')
             .eq('id', clientId)
             .maybeSingle();
-      } catch (_) {
+        profile = rawProfile != null
+            ? Map<String, dynamic>.from(rawProfile as Map)
+            : null;
+      } catch (e) {
+        assert(() { debugPrint('Profile fetch error: $e'); return true; }());
         profile = null;
       }
     }
 
-    return {
-      ...Map<String, dynamic>.from(project),
+    try {
+      final countData = await supabase
+          .from('proposals')
+          .select('id')
+          .eq('project_id', projectId);
+      proposalCount = (countData as List).length;
+    } catch (_) {
+      proposalCount = 0;
+    }
+
+    // ✅ Build typed map explicitly — NO spread operator
+    return <String, dynamic>{
+      'id': project['id'],
+      'title': project['title'],
+      'description': project['description'],
+      'budget_min': project['budget_min'],
+      'budget_max': project['budget_max'],
+      'skills': project['skills'],
+      'duration': project['duration'],
+      'status': project['status'],
+      'created_at': project['created_at'],
+      'client_id': project['client_id'],
       'profiles': profile,
+      'proposal_count': proposalCount,
     };
   } catch (e) {
     throw Exception('Failed to load project: $e');
@@ -45,14 +74,15 @@ FutureProvider.family<Map<String, dynamic>?, String>((ref, projectId) async {
   final user = supabase.auth.currentUser;
   if (user == null) return null;
   try {
-    final data = await supabase
+    final raw = await supabase
         .from('proposals')
-        .select('id, bid_amount, status, cover_letter')
+        .select('id, bid_amount, status, cover_letter, created_at')
         .eq('project_id', projectId)
         .eq('freelancer_id', user.id)
         .maybeSingle();
-    return data != null ? Map<String, dynamic>.from(data) : null;
-  } catch (e) {
+    // ✅ Force typed here too
+    return raw != null ? Map<String, dynamic>.from(raw as Map) : null;
+  } catch (_) {
     return null;
   }
 });

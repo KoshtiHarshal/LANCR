@@ -173,6 +173,12 @@ final routerProvider = Provider((ref) {
         builder: (context, state) => const PostProjectPage(),
       ),
       GoRoute(
+        path: '/projects/:id/edit',
+        builder: (context, state) => PostProjectPage(
+          projectId: state.pathParameters['id'],
+        ),
+      ),
+      GoRoute(
         path: '/projects/browse',
         builder: (context, state) => const BrowseProjectsPage(),
       ),

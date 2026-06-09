@@ -8,7 +8,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
 
 class PostProjectPage extends ConsumerStatefulWidget {
-  const PostProjectPage({super.key});
+  final String? projectId; // null = create, non-null = edit
+  const PostProjectPage({super.key, this.projectId});
 
   @override
   ConsumerState<PostProjectPage> createState() => _PostProjectPageState();
@@ -24,6 +25,9 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
 
   String _duration = 'less_1_month';
   bool _isLoading = false;
+  bool _isLoadingData = false; // for prefill fetch in edit mode
+
+  bool get _isEditMode => widget.projectId != null;
 
   final _durations = const [
     ('less_1_month', 'Less than 1 month'),
@@ -31,6 +35,12 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
     ('3_6_months', '3 – 6 months'),
     ('more_6_months', 'More than 6 months'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) _loadExistingProject();
+  }
 
   @override
   void dispose() {
@@ -41,6 +51,55 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
     _skillsController.dispose();
     super.dispose();
   }
+
+  // ── Pre-fill form when editing ──────────────────────────────
+  Future<void> _loadExistingProject() async {
+    setState(() => _isLoadingData = true);
+    try {
+      final data = await supabase
+          .from('projects')
+          .select(
+          'title, description, budget_min, budget_max, skills, duration')
+          .eq('id', widget.projectId!)
+          .single();
+
+      _titleController.text = data['title'] as String? ?? '';
+      _descController.text = data['description'] as String? ?? '';
+      _budgetMinController.text =
+          data['budget_min']?.toString() ?? '';
+      _budgetMaxController.text =
+          data['budget_max']?.toString() ?? '';
+
+      final rawSkills = data['skills'];
+      if (rawSkills is List) {
+        _skillsController.text = rawSkills.join(', ');
+      }
+
+      final rawDuration = data['duration'] as String?;
+      if (rawDuration != null &&
+          _durations.any((d) => d.$1 == rawDuration)) {
+        _duration = rawDuration;
+      }
+
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to load project data.'),
+            backgroundColor: const Color(0xFFD94F4F),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingData = false);
+    }
+  }
+
   String _friendlyError(String raw) {
     if (raw.contains('budget_max') || raw.contains('PGRST204')) {
       return 'Database schema error — please contact support.';
@@ -66,37 +125,56 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
           .where((s) => s.isNotEmpty)
           .toList();
 
-      await supabase.from('projects').insert({
-        'client_id': user.id,
+      final payload = {
         'title': _titleController.text.trim(),
         'description': _descController.text.trim(),
         'budget_min': int.tryParse(_budgetMinController.text.trim()),
         'budget_max': int.tryParse(_budgetMaxController.text.trim()),
         'skills': skills,
         'duration': _duration,
-        'status': 'open',
-      });
+      };
+
+      if (_isEditMode) {
+        // ── Edit mode: update existing row ──────────────
+        await supabase
+            .from('projects')
+            .update(payload)
+            .eq('id', widget.projectId!)
+            .eq('client_id', user.id); // RLS-safe guard
+      } else {
+        // ── Create mode: insert new row ─────────────────
+        await supabase.from('projects').insert({
+          ...payload,
+          'client_id': user.id,
+          'status': 'open',
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                SizedBox(width: 10),
+                const Icon(Icons.check_circle_outline,
+                    color: Colors.white, size: 20),
+                const SizedBox(width: 10),
                 Text(
-                  'Project posted successfully!',
-                  style: TextStyle(color: Colors.white, fontSize: 13),
+                  _isEditMode
+                      ? 'Project updated successfully!'
+                      : 'Project posted successfully!',
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 13),
                 ),
               ],
             ),
             backgroundColor: AppColors.primary,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
           ),
         );
-        context.pop(); // back to client home
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -104,19 +182,22 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const Icon(Icons.error_outline,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     _friendlyError(e.toString()),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 13),
                   ),
                 ),
               ],
             ),
             backgroundColor: const Color(0xFFD94F4F),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 4),
           ),
@@ -132,13 +213,18 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Post a Project'),
+        title: Text(_isEditMode ? 'Edit Project' : 'Post a Project'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
       ),
-      body: SingleChildScrollView(
+      body: _isLoadingData
+          ? const Center(
+        child:
+        CircularProgressIndicator(color: AppColors.primary),
+      )
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
@@ -146,19 +232,25 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              // ── Section header ───────────────────────
-              const Text(
-                'Project Details',
-                style: TextStyle(
+              // ── Section header ──────────────────────
+              Text(
+                _isEditMode
+                    ? 'Update Project Details'
+                    : 'Project Details',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Describe your project clearly to attract the right freelancers.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              Text(
+                _isEditMode
+                    ? 'Update your project info. Changes are visible immediately.'
+                    : 'Describe your project clearly to attract the right freelancers.',
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
 
@@ -168,10 +260,13 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
-                  hintText: 'e.g. Build a React dashboard for my SaaS',
+                  hintText:
+                  'e.g. Build a React dashboard for my SaaS',
                 ),
                 validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Title is required' : null,
+                (v == null || v.trim().isEmpty)
+                    ? 'Title is required'
+                    : null,
               ),
               const SizedBox(height: 20),
 
@@ -209,8 +304,10 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                     ),
                   ),
                   const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('–', style: TextStyle(fontSize: 18)),
+                    padding:
+                    EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('–',
+                        style: TextStyle(fontSize: 18)),
                   ),
                   Expanded(
                     child: TextFormField(
@@ -230,18 +327,22 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
               _label('Project Duration'),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.shadow),
+                  border:
+                  Border.all(color: AppColors.shadow),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _duration,
                     isExpanded: true,
                     onChanged: (val) {
-                      if (val != null) setState(() => _duration = val);
+                      if (val != null) {
+                        setState(() => _duration = val);
+                      }
                     },
                     items: _durations
                         .map((d) => DropdownMenuItem(
@@ -260,13 +361,16 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
               TextFormField(
                 controller: _skillsController,
                 decoration: const InputDecoration(
-                  hintText: 'React, Node.js, Firebase (comma-separated)',
+                  hintText:
+                  'React, Node.js, Firebase (comma-separated)',
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Separate skills with commas.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 32),
@@ -285,9 +389,13 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                       strokeWidth: 2,
                     ),
                   )
-                      : const Text('Post Project'),
+                      : Text(_isEditMode
+                      ? 'Save Changes'
+                      : 'Post Project'),
                 ),
               ),
+
+              const SizedBox(height: 24),
             ],
           ),
         ),

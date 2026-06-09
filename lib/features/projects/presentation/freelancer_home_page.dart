@@ -58,7 +58,7 @@ class FreelancerHomePage extends ConsumerWidget {
                   name: '',
                   onProfileOpen: () => _openProfile(context, uid),
                 ),
-                error: (_, __) => _HeroHeader(
+                error: (_, _) => _HeroHeader(
                   name: '',
                   onProfileOpen: () => _openProfile(context, uid),
                 ),
@@ -81,7 +81,7 @@ class FreelancerHomePage extends ConsumerWidget {
                   statsAsync.when(
                     loading: () => const _StatsSection(
                         active: '…', completed: '…', earnings: '…'),
-                    error: (_, __) => const _StatsSection(
+                    error: (_, _) => const _StatsSection(
                         active: '0', completed: '0', earnings: '\$0'),
                     data: (s) => _StatsSection(
                       active: '${s.active}',
@@ -126,7 +126,7 @@ class FreelancerHomePage extends ConsumerWidget {
                             color: AppColors.primary),
                       ),
                     ),
-                    error: (_, __) => _EmptyState(
+                    error: (_, _) => _EmptyState(
                         onTap: () => context.push('/projects/browse')),
                     data: (list) {
                       if (list.isEmpty) {

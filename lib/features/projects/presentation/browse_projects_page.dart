@@ -409,7 +409,7 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                       itemCount: filterChips.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                       const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final chip = filterChips[index];
@@ -550,7 +550,7 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                     const EdgeInsets.fromLTRB(16, 0, 16, 32),
                     sliver: SliverList.separated(
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                       const SizedBox(height: 12),
                       itemBuilder: (context, index) => ProjectCard(
                         project: filtered[index],
@@ -603,7 +603,7 @@ class _SkeletonLoaderState extends State<_SkeletonLoader>
   Widget _bone(double w, double h, {double radius = 10}) =>
       AnimatedBuilder(
         animation: _anim,
-        builder: (_, __) => Opacity(
+        builder: (_, _) => Opacity(
           opacity: _anim.value,
           child: Container(
             width: w,
