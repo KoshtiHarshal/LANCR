@@ -2,17 +2,18 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lancr_app/main.dart';
+import 'package:lancr_app/features/auth/presentation/auth_provider.dart';
 
 final myProposalsProvider =
 FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return [];
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return [];
 
   try {
     final proposals = await supabase
         .from('proposals')
         .select('id, bid_amount, status, cover_letter, created_at, project_id')
-        .eq('freelancer_id', user.id)
+        .eq('freelancer_id', userId)
         .order('created_at', ascending: false);
 
     final List<Map<String, dynamic>> result = [];

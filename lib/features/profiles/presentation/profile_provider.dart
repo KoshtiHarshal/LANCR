@@ -1,17 +1,18 @@
 // lib/features/profiles/presentation/profile_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/presentation/auth_provider.dart';
 import '../../../main.dart';
 
 /// Current logged-in user's own profile
 final profileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return null;
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return null;
   try {
     final data = await supabase
         .from('profiles')
         .select()
-        .eq('id', user.id)
+        .eq('id', userId)
         .single();
     return data;
   } catch (_) {

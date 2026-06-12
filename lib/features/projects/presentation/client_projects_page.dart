@@ -5,18 +5,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../auth/presentation/auth_provider.dart';
 import '../../../main.dart';
 
 final clientProjectsProvider =
 FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return [];
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return [];
   try {
     final data = await supabase
         .from('projects')
         .select(
         'id, title, description, status, budget_min, budget_max, created_at')
-        .eq('client_id', user.id)
+        .eq('client_id', userId)
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(data as List);
   } catch (e) {

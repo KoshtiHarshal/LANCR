@@ -2,11 +2,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../auth/presentation/auth_provider.dart';
 
 // ── Active projects (accepted proposals with project data) ──
 final activeProjectsProvider =
 FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final uid = Supabase.instance.client.auth.currentUser?.id;
+  final uid = ref.watch(authProvider).value?.id;
   if (uid == null) return [];
 
   final res = await Supabase.instance.client
@@ -22,7 +23,7 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
 // ── Stats: total, active, completed, earnings ───────────────
 final proposalStatsProvider =
 FutureProvider<({int total, int active, int completed, double earnings})>((ref) async {
-  final uid = Supabase.instance.client.auth.currentUser?.id;
+  final uid = ref.watch(authProvider).value?.id;
   if (uid == null) return (total: 0, active: 0, completed: 0, earnings: 0.0);
 
   final res = await Supabase.instance.client

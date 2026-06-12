@@ -10,6 +10,22 @@ final authProvider = StreamProvider<User?>((ref) {
   return supabase.auth.onAuthStateChange.map((event) => event.session?.user);
 });
 
+final currentUserRoleProvider = FutureProvider<String?>((ref) async {
+  final user = ref.watch(authProvider).value;
+  if (user == null) return null;
+
+  try {
+    final data = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+    return data['role'] as String?;
+  } catch (_) {
+    return null;
+  }
+});
+
 class AuthNotifier extends AsyncNotifier<User?> {
   @override
   Future<User?> build() async {
@@ -63,8 +79,14 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
   Future<void> logout() async {
     debugPrint('AUTH: logout');
-    await supabase.auth.signOut();
-    state = const AsyncData(null);
+    state = const AsyncLoading();
+    try {
+      await supabase.auth.signOut();
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 }
 

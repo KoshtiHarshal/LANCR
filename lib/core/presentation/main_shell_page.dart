@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/projects/presentation/browse_projects_page.dart';
 import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/client_projects_page.dart';
@@ -11,7 +12,6 @@ import '../../features/projects/presentation/freelancer_home_page.dart';
 import '../../features/proposals/presentation/my_proposals_page.dart';
 import '../../features/messages/presentation/conversations_page.dart';
 import '../theme/app_colors.dart';
-import '../../main.dart';
 import '../../features/profiles/presentation/profile_page.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -19,31 +19,16 @@ import '../../features/profiles/presentation/profile_page.dart';
 // ─────────────────────────────────────────────────────────────
 class BottomNavNotifier extends Notifier<int> {
   @override
-  int build() => 0;
+  int build() {
+    ref.watch(authProvider.select((auth) => auth.value?.id));
+    return 0;
+  }
 
   void setIndex(int index) => state = index;
 }
 
 final bottomNavIndexProvider =
 NotifierProvider<BottomNavNotifier, int>(BottomNavNotifier.new);
-
-// ─────────────────────────────────────────────────────────────
-// Role provider
-// ─────────────────────────────────────────────────────────────
-final roleProvider = FutureProvider<String?>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return null;
-  try {
-    final data = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-    return data['role'] as String?;
-  } catch (_) {
-    return null;
-  }
-});
 
 // ─────────────────────────────────────────────────────────────
 // Main Shell
@@ -94,7 +79,7 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
-    final roleAsync = ref.watch(roleProvider);
+    final roleAsync = ref.watch(currentUserRoleProvider);
 
     return roleAsync.when(
       loading: () => const Scaffold(

@@ -1,6 +1,7 @@
 // lib/features/messages/presentation/messages_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/presentation/auth_provider.dart';
 import '../../../main.dart';
 
 // ── Conversation model ──────────────────────────────────────
@@ -31,8 +32,8 @@ class ConversationModel {
 // ── All conversations for current user ─────────────────────
 final conversationsProvider =
 FutureProvider<List<ConversationModel>>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return [];
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return [];
 
   // Step 1: fetch conversations — NO proposals join
   final data = await supabase
@@ -43,7 +44,7 @@ FutureProvider<List<ConversationModel>>((ref) async {
         freelancer:freelancer_id(id, name),
         project:project_id(title)
       ''')
-      .or('client_id.eq.${user.id},freelancer_id.eq.${user.id}')
+      .or('client_id.eq.$userId,freelancer_id.eq.$userId')
       .order('last_message_at', ascending: false);
 
   final rows = data as List;
@@ -67,7 +68,7 @@ FutureProvider<List<ConversationModel>>((ref) async {
 
   // Step 3: map rows to ConversationModel
   return rows.map((row) {
-    final isClient = (row['client']['id'] == user.id);
+    final isClient = (row['client']['id'] == userId);
     final other = isClient ? row['freelancer'] : row['client'];
     final projectId = row['project_id'] as String;
 

@@ -11,13 +11,13 @@ import '../../../main.dart';
 
 // ── Open projects count ──────────────────────────────────────
 final clientProjectsCountProvider = FutureProvider<int>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return 0;
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return 0;
   try {
     final data = await supabase
         .from('projects')
         .select('id')
-        .eq('client_id', user.id)
+        .eq('client_id', userId)
         .eq('status', 'open');
     return (data as List).length;
   } catch (_) {
@@ -27,13 +27,13 @@ final clientProjectsCountProvider = FutureProvider<int>((ref) async {
 
 // ── Proposals received count (across all client's projects) ──
 final clientProposalsCountProvider = FutureProvider<int>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return 0;
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return 0;
   try {
     final projects = await supabase
         .from('projects')
         .select('id')
-        .eq('client_id', user.id);
+        .eq('client_id', userId);
 
     final projectIds = (projects as List)
         .map((p) => p['id'] as String)
@@ -58,13 +58,13 @@ final clientProposalsCountProvider = FutureProvider<int>((ref) async {
 // completeProject sets status → 'completed' (done).
 // This provider must query 'completed', not 'closed'.
 final clientCompletedCountProvider = FutureProvider<int>((ref) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return 0;
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return 0;
   try {
     final data = await supabase
         .from('projects')
         .select('id')
-        .eq('client_id', user.id)
+        .eq('client_id', userId)
         .eq('status', 'completed'); // ← was 'closed' — fixed
     return (data as List).length;
   } catch (_) {

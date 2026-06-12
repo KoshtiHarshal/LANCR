@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../main.dart';
 import 'package:flutter/foundation.dart';
+import '../../auth/presentation/auth_provider.dart';
 
 final projectDetailProvider =
 FutureProvider.family<Map<String, dynamic>, String>((ref, projectId) async {
@@ -71,14 +72,14 @@ FutureProvider.family<Map<String, dynamic>, String>((ref, projectId) async {
 
 final existingProposalProvider =
 FutureProvider.family<Map<String, dynamic>?, String>((ref, projectId) async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return null;
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return null;
   try {
     final raw = await supabase
         .from('proposals')
         .select('id, bid_amount, status, cover_letter, created_at')
         .eq('project_id', projectId)
-        .eq('freelancer_id', user.id)
+        .eq('freelancer_id', userId)
         .maybeSingle();
     // ✅ Force typed here too
     return raw != null ? Map<String, dynamic>.from(raw as Map) : null;

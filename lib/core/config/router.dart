@@ -133,8 +133,25 @@ class SplashPage extends ConsumerWidget {
 // Router
 // ─────────────────────────────────────────────────────────────
 final routerProvider = Provider((ref) {
+  final auth = ref.watch(authProvider);
+
   return GoRouter(
     initialLocation: '/',
+    redirect: (context, state) {
+      if (auth.isLoading) return null;
+
+      final user = auth.value;
+      final location = state.matchedLocation;
+      final isAuthRoute = location == '/auth/login' ||
+          location == '/auth/register';
+
+      if (user == null) {
+        return isAuthRoute ? null : '/auth/login';
+      }
+
+      if (isAuthRoute) return '/home';
+      return null;
+    },
     routes: [
 
       // ── Auth & Onboarding ──────────────────────────────────
