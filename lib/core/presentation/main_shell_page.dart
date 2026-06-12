@@ -107,6 +107,7 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
           const BrowseProjectsPage(),  // 1 - Browse
           const MyProposalsPage(),     // 2 - Proposals
           const ConversationsPage(),   // 3 - Messages
+          const ProfilePage(),         // 4 - Profile
         ];
 
         // ── Nav items ──────────────────────────────────────
@@ -153,6 +154,11 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
             icon: Icon(Icons.chat_bubble_outline),
             activeIcon: Icon(Icons.chat_bubble),
             label: 'Messages',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ];
 

@@ -8,6 +8,7 @@ import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
 import '../../features/onboarding/presentation/role_selection_page.dart';
+import '../../features/profiles/presentation/profile_page.dart';
 import '../../features/projects/presentation/browse_projects_page.dart';
 import '../../features/projects/presentation/client_home_page.dart';
 import '../../features/projects/presentation/post_project_page.dart';
@@ -235,6 +236,14 @@ final routerProvider = Provider((ref) {
           context: context,
           state: state,
           child: const EditProfilePage(),
+        ),
+      ),
+      GoRoute(
+        path: '/profile/me',
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: const ProfilePage(),
         ),
       ),
       GoRoute(

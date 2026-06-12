@@ -1,5 +1,3 @@
-// lib/features/profiles/presentation/profile_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,369 +9,478 @@ import 'profile_provider.dart';
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
+  Future<void> _openEditor(
+    BuildContext context,
+    WidgetRef ref,
+    String userId,
+  ) async {
+    await context.push('/profile/edit');
+    ref.invalidate(profileProvider);
+    ref.invalidate(publicProfileProvider(userId));
+  }
+
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Sign out?'),
+        content: const Text(
+          'You will need to sign in again to access your LANCR account.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD94F4F),
+            ),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(authNotifierProvider.notifier).logout();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: profileAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline,
-                  size: 48, color: AppColors.textSecondary),
-              const SizedBox(height: 12),
-              Text(
-                e.toString().replaceFirst('Exception: ', ''),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(profileProvider),
-                child: const Text('Retry'),
-              ),
-            ],
+      body: SafeArea(
+        bottom: false,
+        child: profileAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
+          error: (_, _) => _ProfileError(
+            onRetry: () => ref.invalidate(profileProvider),
+          ),
+          data: (profile) {
+            if (profile == null) {
+              return const Center(child: Text('Profile not found'));
+            }
+            return _ProfileBody(
+              profile: profile,
+              onEdit: () => _openEditor(
+                context,
+                ref,
+                profile['id'] as String,
+              ),
+              onLogout: () => _confirmLogout(context, ref),
+            );
+          },
         ),
-        data: (profile) {
-          if (profile == null) {
-            return const Center(child: Text('Profile not found'));
-          }
-
-          final name = profile['name'] as String? ?? '';
-          final email = profile['email'] as String? ?? '';
-          final role = profile['role'] as String? ?? 'freelancer';
-          final headline = profile['headline'] as String?;
-          final bio = profile['bio'] as String?;
-          final location = profile['location'] as String?;
-          final company = profile['company'] as String?;
-          final expYears = profile['experience_years'];
-          final portfolioUrl = profile['portfolio_url'] as String?;
-          final linkedinUrl = profile['linkedin_url'] as String?;
-          final skills = (profile['skills'] as List? ?? [])
-              .map((s) => s.toString())
-              .toList();
-          final isClient = role == 'client';
-          final userId = profile['id'] as String;
-
-          final initials = name.trim().isNotEmpty
-              ? name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
-              : '?';
-
-          return CustomScrollView(
-            slivers: [
-              // ── Header SliverAppBar ─────────────────────
-              SliverAppBar(
-                expandedHeight: 220,
-                pinned: true,
-                automaticallyImplyLeading: false,
-                backgroundColor: AppColors.primary,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primary, Color(0xFF007A75)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: SafeArea(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 16),
-                          // Avatar with edit overlay
-                          Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              CircleAvatar(
-                                radius: 40,
-                                backgroundColor: Colors.white24,
-                                child: Text(
-                                  initials,
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () => context.push('/profile/edit'),
-                                child: Container(
-                                  padding: const EdgeInsets.all(5),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.edit,
-                                    size: 14,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            name.isNotEmpty ? name : 'No name set',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (headline != null && headline.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 32),
-                              child: Text(
-                                headline,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFFCCEEEC),
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            )
-                          else
-                            _RoleBadge(isClient: isClient),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-
-                      // ── Stats Row (freelancer only) ─────
-                      if (!isClient) ...[
-                        _FreelancerStatsRow(userId: userId),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // ── Info Chips ──────────────────────
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (location != null && location.isNotEmpty)
-                            _InfoChip(
-                              icon: Icons.location_on_outlined,
-                              label: location,
-                            ),
-                          if (isClient && company != null && company.isNotEmpty)
-                            _InfoChip(
-                              icon: Icons.business_outlined,
-                              label: company,
-                            ),
-                          if (!isClient && expYears != null)
-                            _InfoChip(
-                              icon: Icons.workspace_premium_outlined,
-                              label: '$expYears yrs experience',
-                            ),
-                          _InfoChip(
-                            icon: Icons.email_outlined,
-                            label: email,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── About ───────────────────────────
-                      if (bio != null && bio.isNotEmpty) ...[
-                        _SectionTitle('About'),
-                        const SizedBox(height: 8),
-                        Text(
-                          bio,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                            height: 1.6,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // ── Skills (freelancer only) ────────
-                      if (!isClient && skills.isNotEmpty) ...[
-                        _SectionTitle('Skills'),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: skills
-                              .map((skill) => _SkillChip(skill: skill))
-                              .toList(),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // ── Links ───────────────────────────
-                      if ((portfolioUrl != null && portfolioUrl.isNotEmpty) ||
-                          (linkedinUrl != null && linkedinUrl.isNotEmpty)) ...[
-                        _SectionTitle('Links'),
-                        const SizedBox(height: 10),
-                        if (portfolioUrl != null && portfolioUrl.isNotEmpty)
-                          _LinkTile(
-                            icon: Icons.language_outlined,
-                            label: 'Portfolio',
-                            url: portfolioUrl,
-                          ),
-                        if (linkedinUrl != null && linkedinUrl.isNotEmpty)
-                          _LinkTile(
-                            icon: Icons.link_outlined,
-                            label: 'LinkedIn',
-                            url: linkedinUrl,
-                          ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // ── Role Badge ──────────────────────
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.shadow),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isClient
-                                  ? Icons.business_center_outlined
-                                  : Icons.work_outline,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              isClient
-                                  ? 'Registered as a Client'
-                                  : 'Registered as a Freelancer',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // ── Edit Profile Button ─────────────
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => context.push('/profile/edit'),
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Edit Profile'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // ── Sign Out ────────────────────────
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            await ref
-                                .read(authNotifierProvider.notifier)
-                                .logout();
-                            if (context.mounted) {
-                              context.go('/auth/login');
-                            }
-                          },
-                          icon: const Icon(Icons.logout,
-                              size: 18, color: AppColors.textSecondary),
-                          label: const Text(
-                            'Sign out',
-                            style: TextStyle(color: AppColors.textSecondary),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.shadow),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Freelancer Stats Row (own profile)
-// ─────────────────────────────────────────────────────────────
-class _FreelancerStatsRow extends ConsumerWidget {
-  final String userId;
-  const _FreelancerStatsRow({required this.userId});
+class _ProfileBody extends ConsumerWidget {
+  final Map<String, dynamic> profile;
+  final VoidCallback onEdit;
+  final VoidCallback onLogout;
+
+  const _ProfileBody({
+    required this.profile,
+    required this.onEdit,
+    required this.onLogout,
+  });
+
+  String? _text(String key) {
+    final value = profile[key]?.toString().trim();
+    return value == null || value.isEmpty ? null : value;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(freelancerStatsProvider(userId));
+    final userId = profile['id'] as String;
+    final name = _text('name') ?? 'Complete your profile';
+    final headline = _text('headline');
+    final email = _text('email');
+    final location = _text('location');
+    final company = _text('company');
+    final bio = _text('bio');
+    final portfolio = _text('portfolio_url');
+    final linkedin = _text('linkedin_url');
+    final avatarUrl = _text('avatar_url');
+    final experience = profile['experience_years'];
+    final skills =
+        (profile['skills'] as List? ?? []).map((skill) => '$skill').toList();
+    final isClient = (_text('role') ?? 'freelancer') == 'client';
+    final initials = name
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part[0])
+        .join()
+        .toUpperCase();
+    final completion = [
+      name,
+      headline ?? '',
+      location ?? '',
+      bio ?? '',
+      isClient ? company ?? '' : skills.join(),
+    ].where((value) => value.trim().isNotEmpty).length *
+        20;
 
-    return statsAsync.when(
-      loading: () => Container(
-        height: 80,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.shadow),
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: AppColors.primary),
-        ),
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        ref.invalidate(profileProvider);
+        ref.invalidate(freelancerStatsProvider(userId));
+        ref.invalidate(clientStatsProvider(userId));
+      },
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'My profile',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.7,
+                  ),
+                ),
+              ),
+              _TopAction(
+                icon: Icons.edit_outlined,
+                tooltip: 'Edit profile',
+                onTap: onEdit,
+              ),
+              const SizedBox(width: 8),
+              _TopAction(
+                icon: Icons.logout_rounded,
+                tooltip: 'Sign out',
+                foreground: const Color(0xFFD94F4F),
+                onTap: onLogout,
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _IdentityCard(
+            name: name,
+            subtitle: headline ??
+                (isClient ? company ?? 'LANCR client' : 'LANCR freelancer'),
+            initials: initials.isEmpty ? '?' : initials,
+            avatarUrl: avatarUrl,
+            isClient: isClient,
+            onEditAvatar: onEdit,
+          ),
+          const SizedBox(height: 14),
+          _StatsCard(userId: userId, isClient: isClient),
+          if (completion < 100) ...[
+            const SizedBox(height: 14),
+            _CompletionCard(
+              percent: completion,
+              onTap: onEdit,
+            ),
+          ],
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (location != null)
+                _InfoPill(
+                  icon: Icons.location_on_outlined,
+                  label: location,
+                ),
+              if (isClient && company != null)
+                _InfoPill(icon: Icons.apartment_rounded, label: company),
+              if (!isClient && experience != null)
+                _InfoPill(
+                  icon: Icons.workspace_premium_outlined,
+                  label: '$experience years experience',
+                ),
+              if (email != null)
+                _InfoPill(icon: Icons.mail_outline_rounded, label: email),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _SectionCard(
+            icon: Icons.person_outline_rounded,
+            title: isClient ? 'About your business' : 'About you',
+            child: Text(
+              bio ??
+                  (isClient
+                      ? 'Add a short company introduction so freelancers know who they will work with.'
+                      : 'Add a concise bio to explain your experience and working style.'),
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                height: 1.6,
+                fontStyle: bio == null ? FontStyle.italic : FontStyle.normal,
+              ),
+            ),
+          ),
+          if (!isClient) ...[
+            const SizedBox(height: 14),
+            _SectionCard(
+              icon: Icons.auto_awesome_outlined,
+              title: 'Skills & expertise',
+              child: skills.isEmpty
+                  ? const Text(
+                      'Add your strongest skills to improve project matching.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    )
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: skills
+                          .map((skill) => _SkillChip(label: skill))
+                          .toList(),
+                    ),
+            ),
+          ],
+          if (portfolio != null || linkedin != null) ...[
+            const SizedBox(height: 14),
+            _SectionCard(
+              icon: Icons.link_rounded,
+              title: 'Professional links',
+              child: Column(
+                children: [
+                  if (portfolio != null)
+                    _LinkRow(
+                      icon: Icons.language_rounded,
+                      label: 'Portfolio',
+                      value: portfolio,
+                    ),
+                  if (portfolio != null && linkedin != null)
+                    const Divider(color: AppColors.shadow),
+                  if (linkedin != null)
+                    _LinkRow(
+                      icon: Icons.badge_outlined,
+                      label: 'LinkedIn',
+                      value: linkedin,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (stats) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.shadow),
+    );
+  }
+}
+
+class _TopAction extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final Color foreground;
+  final VoidCallback onTap;
+
+  const _TopAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.foreground = AppColors.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      tooltip: tooltip,
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.surface,
+        foregroundColor: foreground,
+        side: const BorderSide(color: AppColors.shadow),
+      ),
+      icon: Icon(icon, size: 20),
+    );
+  }
+}
+
+class _IdentityCard extends StatelessWidget {
+  final String name;
+  final String subtitle;
+  final String initials;
+  final String? avatarUrl;
+  final bool isClient;
+  final VoidCallback onEditAvatar;
+
+  const _IdentityCard({
+    required this.name,
+    required this.subtitle,
+    required this.initials,
+    required this.avatarUrl,
+    required this.isClient,
+    required this.onEditAvatar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF5F1EC), Color(0xFFE0F5F4)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.shadow),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: onEditAvatar,
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                CircleAvatar(
+                  radius: 42,
+                  backgroundColor: AppColors.primary,
+                  backgroundImage:
+                      avatarUrl == null ? null : NetworkImage(avatarUrl ?? 'Unknown'),
+                  child: avatarUrl == null
+                      ? Text(
+                          initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        )
+                      : null,
+                ),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.shadow),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isClient ? 'CLIENT' : 'FREELANCER',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsCard extends ConsumerWidget {
+  final String userId;
+  final bool isClient;
+
+  const _StatsCard({required this.userId, required this.isClient});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = isClient
+        ? ref.watch(clientStatsProvider(userId))
+        : ref.watch(freelancerStatsProvider(userId));
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 88),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.shadow),
+      ),
+      child: stats.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 2,
+          ),
+        ),
+        error: (_, _) => const Center(child: Text('Stats unavailable')),
+        data: (values) => Row(
           children: [
-            _StatItem(
-              value: '${stats['totalProposals']}',
-              label: 'Proposals',
+            _Stat(
+              value: '${values[isClient ? 'totalProjects' : 'totalProposals']}',
+              label: isClient ? 'Projects' : 'Proposals',
               color: AppColors.primary,
             ),
-            _Divider(),
-            _StatItem(
-              value: '${stats['activeProjects']}',
+            const _StatDivider(),
+            _Stat(
+              value: '${values['activeProjects']}',
               label: 'Active',
               color: const Color(0xFFF59E0B),
             ),
-            _Divider(),
-            _StatItem(
-              value: '${stats['completedProjects']}',
+            const _StatDivider(),
+            _Stat(
+              value: '${values['completedProjects']}',
               label: 'Completed',
               color: const Color(0xFF2E7D32),
             ),
@@ -384,123 +491,36 @@ class _FreelancerStatsRow extends ConsumerWidget {
   }
 }
 
-class _Divider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      width: 1,
-      color: AppColors.shadow,
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
+class _Stat extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
-  const _StatItem(
-      {required this.value, required this.label, required this.color});
+
+  const _Stat({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Role Badge (in header)
-// ─────────────────────────────────────────────────────────────
-class _RoleBadge extends StatelessWidget {
-  final bool isClient;
-  const _RoleBadge({required this.isClient});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white24,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        isClient ? 'Client' : 'Freelancer',
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Section Title
-// ─────────────────────────────────────────────────────────────
-class _SectionTitle extends StatelessWidget {
-  final String text;
-  const _SectionTitle(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Info Chip
-// ─────────────────────────────────────────────────────────────
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _InfoChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.shadow),
-      ),
-      child: Row(
+    return Expanded(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: AppColors.textSecondary),
-          const SizedBox(width: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           Text(
             label,
             style: const TextStyle(
-              fontSize: 12,
               color: AppColors.textSecondary,
+              fontSize: 11,
             ),
           ),
         ],
@@ -509,58 +529,226 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Skill Chip
-// ─────────────────────────────────────────────────────────────
-class _SkillChip extends StatelessWidget {
-  final String skill;
-  const _SkillChip({required this.skill});
+class _StatDivider extends StatelessWidget {
+  const _StatDivider();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        skill,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: AppColors.primary,
+    return Container(width: 1, height: 38, color: AppColors.shadow);
+  }
+}
+
+class _CompletionCard extends StatelessWidget {
+  final int percent;
+  final VoidCallback onTap;
+
+  const _CompletionCard({required this.percent, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Ink(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: percent / 100,
+                    strokeWidth: 5,
+                    backgroundColor: AppColors.shadow,
+                    color: AppColors.primary,
+                  ),
+                  Text(
+                    '$percent%',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 13),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Finish your profile',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Complete profiles build more trust.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: AppColors.primary,
+              size: 14,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Link Tile
-// ─────────────────────────────────────────────────────────────
-class _LinkTile extends StatelessWidget {
+class _InfoPill extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String url;
-  const _LinkTile(
-      {required this.icon, required this.label, required this.url});
+
+  const _InfoPill({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.shadow),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 10),
+          Icon(icon, color: AppColors.primary, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Widget child;
+
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.shadow),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 17),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _SkillChip extends StatelessWidget {
+  final String label;
+
+  const _SkillChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _LinkRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _LinkRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 20),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,24 +756,53 @@ class _LinkTile extends StatelessWidget {
                 Text(
                   label,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
                   ),
                 ),
                 Text(
-                  url,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primary,
-                  ),
+                  value,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios,
-              size: 14, color: AppColors.textSecondary),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _ProfileError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.person_off_outlined,
+            size: 48,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 12),
+          const Text('Could not load your profile'),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Retry'),
+          ),
         ],
       ),
     );

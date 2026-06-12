@@ -106,3 +106,28 @@ FutureProvider.family<Map<String, int>, String>((ref, freelancerId) async {
     };
   }
 });
+
+final clientStatsProvider =
+    FutureProvider.family<Map<String, int>, String>((ref, clientId) async {
+  try {
+    final projects = await supabase
+        .from('projects')
+        .select('id, status')
+        .eq('client_id', clientId);
+    final list = projects as List;
+
+    return {
+      'totalProjects': list.length,
+      'activeProjects':
+          list.where((project) => project['status'] == 'closed').length,
+      'completedProjects':
+          list.where((project) => project['status'] == 'completed').length,
+    };
+  } catch (_) {
+    return {
+      'totalProjects': 0,
+      'activeProjects': 0,
+      'completedProjects': 0,
+    };
+  }
+});

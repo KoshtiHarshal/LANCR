@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../profiles/presentation/profile_provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -24,9 +23,8 @@ class FreelancerHomePage extends ConsumerWidget {
   }
 
   // ── Navigate to real profile page with slide-up transition ──
-  void _openProfile(BuildContext context, String uid) {
-    // GoRouter will now use the slideUp pageBuilder defined in router.dart
-    context.push('/profile/$uid');
+  void _openProfile(BuildContext context) {
+    context.push('/profile/me');
   }
 
   @override
@@ -34,8 +32,6 @@ class FreelancerHomePage extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final activeAsync  = ref.watch(activeProjectsProvider);
     final statsAsync   = ref.watch(proposalStatsProvider);
-    final uid = Supabase.instance.client.auth.currentUser?.id ?? '';
-
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
 
     return Scaffold(
@@ -56,15 +52,15 @@ class FreelancerHomePage extends ConsumerWidget {
               child: profileAsync.when(
                 loading: () => _HeroHeader(
                   name: '',
-                  onProfileOpen: () => _openProfile(context, uid),
+                  onProfileOpen: () => _openProfile(context),
                 ),
                 error: (_, _) => _HeroHeader(
                   name: '',
-                  onProfileOpen: () => _openProfile(context, uid),
+                  onProfileOpen: () => _openProfile(context),
                 ),
                 data: (profile) => _HeroHeader(
                   name: profile?['name'] ?? '',
-                  onProfileOpen: () => _openProfile(context, uid),
+                  onProfileOpen: () => _openProfile(context),
                 ),
               ),
             ),
