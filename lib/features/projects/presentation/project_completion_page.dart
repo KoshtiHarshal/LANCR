@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../reviews/data/reviews_repository.dart';
+import '../../reviews/presentation/reviews_provider.dart';
+import '../../reviews/presentation/review_widgets.dart';
 import 'project_completion_provider.dart';
 
 class ProjectCompletionPage extends ConsumerStatefulWidget {
@@ -62,9 +64,11 @@ class _ProjectCompletionPageState
       // Invalidate providers so lists refresh
       ref.invalidate(projectDetailProvider(widget.projectId));
       ref.invalidate(acceptedFreelancerProvider(widget.projectId));
+      ref.invalidate(reviewEligibilityProvider(widget.projectId));
 
-      // Show success screen
-      _showSuccessBanner();
+      // Show success screen, then prompt for a review
+      await _showSuccessBanner();
+      if (mounted) await _maybePromptReview();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,8 +86,33 @@ class _ProjectCompletionPageState
     }
   }
 
-  void _showSuccessBanner() {
-    showDialog(
+  /// After completion, offer the current user (client or freelancer) the
+  /// chance to review their counterpart.
+  Future<void> _maybePromptReview() async {
+    final reviewCtx =
+    await reviewsRepository.getReviewContext(widget.projectId);
+    if (!mounted) return;
+
+    final canReview = reviewCtx['canReview'] as bool? ?? false;
+    final revieweeId = reviewCtx['revieweeId'] as String?;
+    final revieweeName = reviewCtx['revieweeName'] as String? ?? 'this user';
+    if (!canReview || revieweeId == null) return;
+
+    final submitted = await showReviewDialog(
+      context,
+      projectId: widget.projectId,
+      revieweeId: revieweeId,
+      revieweeName: revieweeName,
+    );
+    if (submitted == true && mounted) {
+      ref.invalidate(reviewEligibilityProvider(widget.projectId));
+      ref.invalidate(userReviewsProvider(revieweeId));
+      ref.invalidate(userRatingStatsProvider(revieweeId));
+    }
+  }
+
+  Future<void> _showSuccessBanner() {
+    return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -125,11 +154,8 @@ class _ProjectCompletionPageState
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  context.go('/home');
-                },
-                child: const Text('Back to Home'),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Continue'),
               ),
             ),
           ],
@@ -347,7 +373,7 @@ class _ProjectCompletionPageState
                     ),
                   ),
 
-                if (isCompleted)
+                if (isCompleted) ...[
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -376,6 +402,10 @@ class _ProjectCompletionPageState
                       ],
                     ),
                   ),
+
+                  // ── Leave a Review CTA ────────────────────
+                  LeaveReviewCard(projectId: widget.projectId),
+                ],
               ],
             ),
           );

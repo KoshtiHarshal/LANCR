@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../reviews/presentation/review_widgets.dart';
 import 'profile_provider.dart';
 
 class PublicProfilePage extends ConsumerWidget {
@@ -59,7 +60,7 @@ class _ProfileContent extends ConsumerWidget {
     final avatarUrl = _text('avatar_url');
     final experience = profile['experience_years'];
     final skills =
-        (profile['skills'] as List? ?? []).map((item) => '$item').toList();
+    (profile['skills'] as List? ?? []).map((item) => '$item').toList();
     final initials = name
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
@@ -96,6 +97,10 @@ class _ProfileContent extends ConsumerWidget {
                 Transform.translate(
                   offset: const Offset(0, -22),
                   child: _StatsCard(userId: userId, isClient: isClient),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: RatingSummary(userId: userId),
                 ),
                 Wrap(
                   spacing: 8,
@@ -139,7 +144,7 @@ class _ProfileContent extends ConsumerWidget {
                           : AppColors.textSecondary,
                       height: 1.6,
                       fontStyle:
-                          bio == null ? FontStyle.italic : FontStyle.normal,
+                      bio == null ? FontStyle.italic : FontStyle.normal,
                     ),
                   ),
                 ),
@@ -150,19 +155,19 @@ class _ProfileContent extends ConsumerWidget {
                     title: 'Skills & expertise',
                     child: skills.isEmpty
                         ? const Text(
-                            'Skills have not been added yet.',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          )
+                      'Skills have not been added yet.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    )
                         : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: skills
-                                .map((skill) => _SkillChip(label: skill))
-                                .toList(),
-                          ),
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: skills
+                          .map((skill) => _SkillChip(label: skill))
+                          .toList(),
+                    ),
                   ),
                 ],
                 if (portfolio != null || linkedin != null) ...[
@@ -190,6 +195,12 @@ class _ProfileContent extends ConsumerWidget {
                     ),
                   ),
                 ],
+                const SizedBox(height: 14),
+                _SectionCard(
+                  icon: Icons.star_outline_rounded,
+                  title: isClient ? 'Reviews from freelancers' : 'Reviews',
+                  child: ReviewsList(userId: userId),
+                ),
               ]),
             ),
           ),
@@ -273,9 +284,9 @@ class _ProfileHero extends StatelessWidget {
                   image: avatarUrl == null
                       ? null
                       : DecorationImage(
-                          image: NetworkImage(avatarUrl!),
-                          fit: BoxFit.cover,
-                        ),
+                    image: NetworkImage(avatarUrl!),
+                    fit: BoxFit.cover,
+                  ),
                   border: Border.all(color: Colors.white54, width: 2),
                   boxShadow: [
                     BoxShadow(
@@ -287,13 +298,13 @@ class _ProfileHero extends StatelessWidget {
                 ),
                 child: avatarUrl == null
                     ? Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      )
+                  initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                  ),
+                )
                     : null,
               ),
               const SizedBox(height: 12),
@@ -318,7 +329,7 @@ class _ProfileHero extends StatelessWidget {
               const SizedBox(height: 12),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),

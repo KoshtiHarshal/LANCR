@@ -26,7 +26,8 @@ FutureProvider.family<List<Map<String, dynamic>>, String>(
           try {
             final profile = await supabase
                 .from('profiles')
-                .select('name, headline, location, skills, experience_years')
+                .select(
+                    'name, headline, location, skills, experience_years, rating_avg, rating_count')
                 .eq('id', freelancerId)
                 .maybeSingle();
             p['freelancer'] = profile;

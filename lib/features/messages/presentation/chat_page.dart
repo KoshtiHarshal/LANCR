@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
 import '../../projects/presentation/proposals_provider.dart';
+import '../../reviews/data/reviews_repository.dart';
+import '../../reviews/presentation/reviews_provider.dart';
+import '../../reviews/presentation/review_widgets.dart';
 import 'messages_provider.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -119,7 +122,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         proposalId: widget.proposalId!,
       );
       if (mounted) {
-        _showCompletionSuccess();
+        ref.invalidate(reviewEligibilityProvider(widget.projectId!));
+        await _showCompletionSuccess();
+        if (mounted) await _maybePromptReview();
+        if (mounted) Navigator.pop(context); // go back from chat
       }
     } catch (e) {
       if (mounted) {
@@ -132,8 +138,34 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
-  void _showCompletionSuccess() {
-    showDialog(
+  /// After completion, offer the client the chance to review the freelancer.
+  Future<void> _maybePromptReview() async {
+    final projectId = widget.projectId;
+    if (projectId == null) return;
+
+    final reviewCtx = await reviewsRepository.getReviewContext(projectId);
+    if (!mounted) return;
+
+    final canReview = reviewCtx['canReview'] as bool? ?? false;
+    final revieweeId = reviewCtx['revieweeId'] as String?;
+    final revieweeName = reviewCtx['revieweeName'] as String? ?? 'this user';
+    if (!canReview || revieweeId == null) return;
+
+    final submitted = await showReviewDialog(
+      context,
+      projectId: projectId,
+      revieweeId: revieweeId,
+      revieweeName: revieweeName,
+    );
+    if (submitted == true && mounted) {
+      ref.invalidate(reviewEligibilityProvider(projectId));
+      ref.invalidate(userReviewsProvider(revieweeId));
+      ref.invalidate(userRatingStatsProvider(revieweeId));
+    }
+  }
+
+  Future<void> _showCompletionSuccess() {
+    return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -168,10 +200,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.pop(context); // go back from chat
-                },
+                onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
@@ -242,6 +271,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       ),
       body: Column(
         children: [
+          // ── Leave-review banner (shows for whichever party is eligible) ──
+          if (widget.projectId != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: LeaveReviewCard(projectId: widget.projectId!),
+            ),
+
           // ── Messages list ───────────────────────────
           Expanded(
             child: messagesAsync.when(

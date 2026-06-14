@@ -10,6 +10,8 @@ import '../../projects/presentation/project_detail_provider.dart';
 import '../../proposals//presentation/my_proposals_provider.dart';
 import '../../profiles/presentation/profile_provider.dart';
 import '../../projects/presentation/client_home_page.dart'; // for clientProjectsCountProvider etc.
+import '../../reviews/data/reviews_repository.dart';
+import '../../reviews/presentation/review_widgets.dart';
 
 class ViewProposalsPage extends ConsumerWidget {
   final String projectId;
@@ -38,7 +40,16 @@ class ViewProposalsPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Proposals')),
+      appBar: AppBar(
+        title: const Text('Proposals'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_outlined),
+            onPressed: invalidateAll,
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
       body: proposalsAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -99,19 +110,23 @@ class ViewProposalsPage extends ConsumerWidget {
             );
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: proposals.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final proposal = proposals[index];
-              return _ProposalCard(
-                proposal: proposal,
-                projectId: projectId,
-                // Pass the full invalidation callback
-                onAction: invalidateAll,
-              );
-            },
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async => invalidateAll(),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: proposals.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final proposal = proposals[index];
+                return _ProposalCard(
+                  proposal: proposal,
+                  projectId: projectId,
+                  // Pass the full invalidation callback
+                  onAction: invalidateAll,
+                );
+              },
+            ),
           );
         },
       ),
@@ -241,12 +256,32 @@ class _ProposalCardState extends State<_ProposalCard> {
       if (mounted) {
         _showSnack('Project marked as completed! 🎉', success: true);
         widget.onAction(); // invalidates all stale providers including client completed count
+        await _maybePromptReview();
       }
     } catch (e) {
       if (mounted) _showSnack('Failed: $e', success: false);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// After completion, offer the client the chance to review the freelancer.
+  Future<void> _maybePromptReview() async {
+    final reviewCtx =
+    await reviewsRepository.getReviewContext(widget.projectId);
+    if (!mounted) return;
+
+    final canReview = reviewCtx['canReview'] as bool? ?? false;
+    final revieweeId = reviewCtx['revieweeId'] as String?;
+    final revieweeName = reviewCtx['revieweeName'] as String? ?? 'this user';
+    if (!canReview || revieweeId == null) return;
+
+    await showReviewDialog(
+      context,
+      projectId: widget.projectId,
+      revieweeId: revieweeId,
+      revieweeName: revieweeName,
+    );
   }
 
   void _showSnack(String msg, {required bool success}) {
@@ -306,6 +341,8 @@ class _ProposalCardState extends State<_ProposalCard> {
     final headline = freelancer?['headline'] as String?;
     final location = freelancer?['location'] as String?;
     final expYears = freelancer?['experience_years'];
+    final ratingAvg = (freelancer?['rating_avg'] as num?)?.toDouble() ?? 0;
+    final ratingCount = (freelancer?['rating_count'] as num?)?.toInt() ?? 0;
     final skills = (freelancer?['skills'] as List? ?? [])
         .map((s) => s.toString())
         .toList();
@@ -371,6 +408,23 @@ class _ProposalCardState extends State<_ProposalCard> {
                                 size: 13, color: AppColors.primary),
                           ],
                         ),
+                        if (ratingCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Row(
+                              children: [
+                                StarRow(rating: ratingAvg, size: 13),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${ratingAvg.toStringAsFixed(1)} ($ratingCount)',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (headline != null && headline.isNotEmpty)
                           Text(
                             headline,
