@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../portfolio/presentation/portfolio_provider.dart';
+import '../../portfolio/presentation/portfolio_widgets.dart';
 import 'profile_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -246,6 +248,33 @@ class _ProfileBody extends ConsumerWidget {
                           .map((skill) => _SkillChip(label: skill))
                           .toList(),
                     ),
+            ),
+            const SizedBox(height: 14),
+            _SectionCard(
+              icon: Icons.work_outline_rounded,
+              title: 'Portfolio',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PortfolioGallery(userId: userId),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await context.push('/portfolio/manage');
+                        ref.invalidate(portfolioProvider(userId));
+                      },
+                      icon: const Icon(Icons.tune_rounded, size: 18),
+                      label: const Text('Manage portfolio'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
           if (portfolio != null || linkedin != null) ...[

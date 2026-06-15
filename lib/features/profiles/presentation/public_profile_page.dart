@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../portfolio/presentation/portfolio_widgets.dart';
 import '../../reviews/presentation/review_widgets.dart';
 import 'profile_provider.dart';
 
@@ -168,6 +169,12 @@ class _ProfileContent extends ConsumerWidget {
                           .map((skill) => _SkillChip(label: skill))
                           .toList(),
                     ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    icon: Icons.work_outline_rounded,
+                    title: 'Portfolio',
+                    child: PortfolioGallery(userId: userId),
                   ),
                 ],
                 if (portfolio != null || linkedin != null) ...[
