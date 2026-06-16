@@ -107,6 +107,26 @@ FutureProvider.family<Map<String, int>, String>((ref, freelancerId) async {
   }
 });
 
+/// A client's currently open projects — shown on their public profile so
+/// freelancers can see what they hire for. Only 'open' projects are returned
+/// (those are visible to everyone under the projects RLS policy).
+final clientRecentProjectsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, clientId) async {
+  try {
+    final rows = await supabase
+        .from('projects')
+        .select('id, title, budget_min, budget_max, status, created_at, skills')
+        .eq('client_id', clientId)
+        .eq('status', 'open')
+        .order('created_at', ascending: false)
+        .limit(5);
+    return (rows as List).map((e) => Map<String, dynamic>.from(e)).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
 final clientStatsProvider =
     FutureProvider.family<Map<String, int>, String>((ref, clientId) async {
   try {

@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../data/reviews_repository.dart';
@@ -69,11 +70,28 @@ class StarRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 class RatingSummary extends ConsumerWidget {
   final String userId;
-  const RatingSummary({super.key, required this.userId});
+
+  /// Light colours for placement on a coloured (e.g. teal) background.
+  final bool light;
+
+  /// Centre the row (used under a centred name).
+  final bool centered;
+
+  const RatingSummary({
+    super.key,
+    required this.userId,
+    this.light = false,
+    this.centered = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(userRatingStatsProvider(userId));
+    final primaryText = light ? Colors.white : AppColors.textPrimary;
+    final secondaryText =
+        light ? Colors.white.withValues(alpha: 0.85) : AppColors.textSecondary;
+    final alignment =
+        centered ? MainAxisAlignment.center : MainAxisAlignment.start;
 
     return statsAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -84,39 +102,37 @@ class RatingSummary extends ConsumerWidget {
 
         if (count == 0) {
           return Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: alignment,
             children: [
-              const StarRow(rating: 0, size: 18),
+              const StarRow(rating: 0, size: 16),
               const SizedBox(width: 8),
               Text(
                 'No reviews yet',
-                style: TextStyle(
-                  color: AppColors.textSecondary.withValues(alpha: 0.8),
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: secondaryText, fontSize: 13),
               ),
             ],
           );
         }
 
         return Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: alignment,
           children: [
             Text(
               average.toStringAsFixed(1),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 20,
+              style: TextStyle(
+                color: primaryText,
+                fontSize: 16,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(width: 8),
-            StarRow(rating: average, size: 18),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
+            StarRow(rating: average, size: 16),
+            const SizedBox(width: 6),
             Text(
               '($count ${count == 1 ? 'review' : 'reviews'})',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: secondaryText, fontSize: 13),
             ),
           ],
         );
@@ -184,66 +200,84 @@ class _ReviewTile extends StatelessWidget {
     final comment = (review['comment'] as String?)?.trim();
     final createdLabel = _timeAgo(review['created_at'] as String?);
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final reviewerId = review['reviewer_id'] as String?;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.primaryLight,
-              backgroundImage:
-              avatarUrl != null ? NetworkImage(avatarUrl) : null,
-              child: avatarUrl == null
-                  ? Text(
-                initial,
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                ),
-              )
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
+    return InkWell(
+      onTap: reviewerId == null
+          ? null
+          : () => context.push('/profile/$reviewerId'),
+      borderRadius: BorderRadius.circular(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primaryLight,
+                backgroundImage:
+                avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                child: avatarUrl == null
+                    ? Text(
+                  initial,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
                   ),
-                  if (createdLabel.isNotEmpty)
-                    Text(
-                      createdLabel,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 11,
-                      ),
+                )
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded,
+                            size: 16, color: AppColors.textSecondary),
+                      ],
                     ),
-                ],
+                    if (createdLabel.isNotEmpty)
+                      Text(
+                        createdLabel,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              StarRow(rating: rating, size: 15),
+            ],
+          ),
+          if (comment != null && comment.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              comment,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 1.5,
               ),
             ),
-            StarRow(rating: rating, size: 15),
           ],
-        ),
-        if (comment != null && comment.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            comment,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-              height: 1.5,
-            ),
-          ),
         ],
-      ],
+      ),
     );
   }
 }

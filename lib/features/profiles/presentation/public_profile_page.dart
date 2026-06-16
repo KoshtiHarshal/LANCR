@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/url_launcher_util.dart';
 import '../../portfolio/presentation/portfolio_widgets.dart';
 import '../../reviews/presentation/review_widgets.dart';
 import 'profile_provider.dart';
@@ -47,6 +48,17 @@ class _ProfileContent extends ConsumerWidget {
     return value == null || value.isEmpty ? null : value;
   }
 
+  String? _memberSince(String? raw) {
+    if (raw == null) return null;
+    final dt = DateTime.tryParse(raw);
+    if (dt == null) return null;
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return 'Member since ${months[dt.month - 1]} ${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final name = _text('name') ?? 'LANCR member';
@@ -62,6 +74,8 @@ class _ProfileContent extends ConsumerWidget {
     final experience = profile['experience_years'];
     final skills =
     (profile['skills'] as List? ?? []).map((item) => '$item').toList();
+    final emailVerified = profile['email_verified'] == true;
+    final memberSince = _memberSince(profile['created_at'] as String?);
     final initials = name
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
@@ -82,12 +96,14 @@ class _ProfileContent extends ConsumerWidget {
         slivers: [
           SliverToBoxAdapter(
             child: _ProfileHero(
+              userId: userId,
               name: name,
               subtitle: headline ??
                   (isClient ? company ?? 'Hiring on LANCR' : 'Freelancer'),
               initials: initials.isEmpty ? '?' : initials,
               avatarUrl: avatarUrl,
               isClient: isClient,
+              emailVerified: emailVerified,
               onBack: () => context.pop(),
             ),
           ),
@@ -99,10 +115,7 @@ class _ProfileContent extends ConsumerWidget {
                   offset: const Offset(0, -22),
                   child: _StatsCard(userId: userId, isClient: isClient),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: RatingSummary(userId: userId),
-                ),
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -128,6 +141,11 @@ class _ProfileContent extends ConsumerWidget {
                           : Icons.work_outline_rounded,
                       label: isClient ? 'Client' : 'Freelancer',
                     ),
+                    if (memberSince != null)
+                      _InfoPill(
+                        icon: Icons.calendar_today_outlined,
+                        label: memberSince,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 22),
@@ -149,6 +167,10 @@ class _ProfileContent extends ConsumerWidget {
                     ),
                   ),
                 ),
+                if (isClient) ...[
+                  const SizedBox(height: 14),
+                  _ClientProjectsSection(clientId: userId),
+                ],
                 if (!isClient) ...[
                   const SizedBox(height: 14),
                   _SectionCard(
@@ -187,7 +209,7 @@ class _ProfileContent extends ConsumerWidget {
                         if (portfolio != null)
                           _LinkRow(
                             icon: Icons.language_rounded,
-                            label: 'Portfolio',
+                            label: isClient ? 'Website' : 'Portfolio',
                             value: portfolio,
                           ),
                         if (portfolio != null && linkedin != null)
@@ -218,19 +240,23 @@ class _ProfileContent extends ConsumerWidget {
 }
 
 class _ProfileHero extends StatelessWidget {
+  final String userId;
   final String name;
   final String subtitle;
   final String initials;
   final String? avatarUrl;
   final bool isClient;
+  final bool emailVerified;
   final VoidCallback onBack;
 
   const _ProfileHero({
+    required this.userId,
     required this.name,
     required this.subtitle,
     required this.initials,
     required this.avatarUrl,
     required this.isClient,
+    required this.emailVerified,
     required this.onBack,
   });
 
@@ -315,14 +341,28 @@ class _ProfileHero extends StatelessWidget {
                     : null,
               ),
               const SizedBox(height: 12),
-              Text(
-                name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  if (emailVerified) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.verified_rounded,
+                        color: Colors.white, size: 20),
+                  ],
+                ],
               ),
               const SizedBox(height: 5),
               Text(
@@ -333,6 +373,8 @@ class _ProfileHero extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
+              const SizedBox(height: 10),
+              RatingSummary(userId: userId, light: true, centered: true),
               const SizedBox(height: 12),
               Container(
                 padding:
@@ -495,7 +537,10 @@ class _InfoPill extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _InfoPill({required this.icon, required this.label});
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -519,6 +564,104 @@ class _InfoPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ClientProjectsSection extends ConsumerWidget {
+  final String clientId;
+  const _ClientProjectsSection({required this.clientId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final projectsAsync = ref.watch(clientRecentProjectsProvider(clientId));
+    return projectsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (projects) => _SectionCard(
+        icon: Icons.work_outline_rounded,
+        title: 'Open projects',
+        child: projects.isEmpty
+            ? const Text(
+                'No open projects right now.',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+            : Column(
+                children: [
+                  for (var i = 0; i < projects.length; i++) ...[
+                    _ClientProjectRow(project: projects[i]),
+                    if (i != projects.length - 1)
+                      const Divider(color: AppColors.shadow, height: 18),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _ClientProjectRow extends StatelessWidget {
+  final Map<String, dynamic> project;
+  const _ClientProjectRow({required this.project});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = (project['title'] as String?) ?? 'Untitled project';
+    final min = project['budget_min'];
+    final max = project['budget_max'];
+    final budget = (min != null && max != null) ? '\$$min – \$$max' : null;
+
+    return InkWell(
+      onTap: () => context.push('/projects/${project['id']}'),
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: const Icon(Icons.assignment_outlined,
+                  color: AppColors.primary, size: 16),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (budget != null)
+                    Text(
+                      budget,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                size: 13, color: AppColors.textSecondary),
+          ],
+        ),
       ),
     );
   }
@@ -616,37 +759,50 @@ class _LinkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary, size: 20),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
+    return InkWell(
+      onTap: () async {
+        final ok = await openExternalLink(value);
+        if (!ok && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open link')),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 20),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            const Icon(Icons.open_in_new_rounded,
+                size: 16, color: AppColors.primary),
+          ],
+        ),
       ),
     );
   }

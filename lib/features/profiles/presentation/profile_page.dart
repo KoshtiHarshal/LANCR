@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../auth/presentation/auth_provider.dart';
 import '../../portfolio/presentation/portfolio_provider.dart';
 import '../../portfolio/presentation/portfolio_widgets.dart';
+import '../../reviews/presentation/review_widgets.dart';
 import 'profile_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -19,36 +19,6 @@ class ProfilePage extends ConsumerWidget {
     await context.push('/profile/edit');
     ref.invalidate(profileProvider);
     ref.invalidate(publicProfileProvider(userId));
-  }
-
-  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Sign out?'),
-        content: const Text(
-          'You will need to sign in again to access your LANCR account.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFD94F4F),
-            ),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await ref.read(authNotifierProvider.notifier).logout();
-    }
   }
 
   @override
@@ -77,7 +47,6 @@ class ProfilePage extends ConsumerWidget {
                 ref,
                 profile['id'] as String,
               ),
-              onLogout: () => _confirmLogout(context, ref),
             );
           },
         ),
@@ -89,12 +58,10 @@ class ProfilePage extends ConsumerWidget {
 class _ProfileBody extends ConsumerWidget {
   final Map<String, dynamic> profile;
   final VoidCallback onEdit;
-  final VoidCallback onLogout;
 
   const _ProfileBody({
     required this.profile,
     required this.onEdit,
-    required this.onLogout,
   });
 
   String? _text(String key) {
@@ -107,17 +74,14 @@ class _ProfileBody extends ConsumerWidget {
     final userId = profile['id'] as String;
     final name = _text('name') ?? 'Complete your profile';
     final headline = _text('headline');
-    final email = _text('email');
     final location = _text('location');
     final company = _text('company');
     final bio = _text('bio');
-    final portfolio = _text('portfolio_url');
-    final linkedin = _text('linkedin_url');
     final avatarUrl = _text('avatar_url');
-    final experience = profile['experience_years'];
     final skills =
         (profile['skills'] as List? ?? []).map((skill) => '$skill').toList();
     final isClient = (_text('role') ?? 'freelancer') == 'client';
+    final emailVerified = profile['email_verified'] == true;
     final initials = name
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
@@ -159,27 +123,25 @@ class _ProfileBody extends ConsumerWidget {
                 ),
               ),
               _TopAction(
-                icon: Icons.edit_outlined,
-                tooltip: 'Edit profile',
-                onTap: onEdit,
-              ),
-              const SizedBox(width: 8),
-              _TopAction(
-                icon: Icons.logout_rounded,
-                tooltip: 'Sign out',
-                foreground: const Color(0xFFD94F4F),
-                onTap: onLogout,
+                icon: Icons.settings_outlined,
+                tooltip: 'Settings',
+                onTap: () async {
+                  await context.push('/settings');
+                  ref.invalidate(profileProvider);
+                },
               ),
             ],
           ),
           const SizedBox(height: 18),
           _IdentityCard(
+            userId: userId,
             name: name,
             subtitle: headline ??
                 (isClient ? company ?? 'LANCR client' : 'LANCR freelancer'),
             initials: initials.isEmpty ? '?' : initials,
             avatarUrl: avatarUrl,
             isClient: isClient,
+            emailVerified: emailVerified,
             onEditAvatar: onEdit,
           ),
           const SizedBox(height: 14),
@@ -191,27 +153,6 @@ class _ProfileBody extends ConsumerWidget {
               onTap: onEdit,
             ),
           ],
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (location != null)
-                _InfoPill(
-                  icon: Icons.location_on_outlined,
-                  label: location,
-                ),
-              if (isClient && company != null)
-                _InfoPill(icon: Icons.apartment_rounded, label: company),
-              if (!isClient && experience != null)
-                _InfoPill(
-                  icon: Icons.workspace_premium_outlined,
-                  label: '$experience years experience',
-                ),
-              if (email != null)
-                _InfoPill(icon: Icons.mail_outline_rounded, label: email),
-            ],
-          ),
           const SizedBox(height: 18),
           _SectionCard(
             icon: Icons.person_outline_rounded,
@@ -277,31 +218,6 @@ class _ProfileBody extends ConsumerWidget {
               ),
             ),
           ],
-          if (portfolio != null || linkedin != null) ...[
-            const SizedBox(height: 14),
-            _SectionCard(
-              icon: Icons.link_rounded,
-              title: 'Professional links',
-              child: Column(
-                children: [
-                  if (portfolio != null)
-                    _LinkRow(
-                      icon: Icons.language_rounded,
-                      label: 'Portfolio',
-                      value: portfolio,
-                    ),
-                  if (portfolio != null && linkedin != null)
-                    const Divider(color: AppColors.shadow),
-                  if (linkedin != null)
-                    _LinkRow(
-                      icon: Icons.badge_outlined,
-                      label: 'LinkedIn',
-                      value: linkedin,
-                    ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -311,14 +227,12 @@ class _ProfileBody extends ConsumerWidget {
 class _TopAction extends StatelessWidget {
   final IconData icon;
   final String tooltip;
-  final Color foreground;
   final VoidCallback onTap;
 
   const _TopAction({
     required this.icon,
     required this.tooltip,
     required this.onTap,
-    this.foreground = AppColors.primary,
   });
 
   @override
@@ -328,7 +242,7 @@ class _TopAction extends StatelessWidget {
       tooltip: tooltip,
       style: IconButton.styleFrom(
         backgroundColor: AppColors.surface,
-        foregroundColor: foreground,
+        foregroundColor: AppColors.primary,
         side: const BorderSide(color: AppColors.shadow),
       ),
       icon: Icon(icon, size: 20),
@@ -337,19 +251,23 @@ class _TopAction extends StatelessWidget {
 }
 
 class _IdentityCard extends StatelessWidget {
+  final String userId;
   final String name;
   final String subtitle;
   final String initials;
   final String? avatarUrl;
   final bool isClient;
+  final bool emailVerified;
   final VoidCallback onEditAvatar;
 
   const _IdentityCard({
+    required this.userId,
     required this.name,
     required this.subtitle,
     required this.initials,
     required this.avatarUrl,
     required this.isClient,
+    required this.emailVerified,
     required this.onEditAvatar,
   });
 
@@ -417,16 +335,27 @@ class _IdentityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                    ),
+                    if (emailVerified) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.verified_rounded,
+                          color: AppColors.primary, size: 18),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -439,6 +368,8 @@ class _IdentityCard extends StatelessWidget {
                     height: 1.35,
                   ),
                 ),
+                const SizedBox(height: 8),
+                RatingSummary(userId: userId),
                 const SizedBox(height: 10),
                 Container(
                   padding:
@@ -647,39 +578,6 @@ class _CompletionCard extends StatelessWidget {
   }
 }
 
-class _InfoPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _InfoPill({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.shadow),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 14),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SectionCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -754,55 +652,6 @@ class _SkillChip extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
-      ),
-    );
-  }
-}
-
-class _LinkRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _LinkRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary, size: 20),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

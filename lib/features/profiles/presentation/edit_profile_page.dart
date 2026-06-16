@@ -389,9 +389,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               TextFormField(
                 controller: _portfolioCtrl,
                 keyboardType: TextInputType.url,
-                decoration: const InputDecoration(
-                  labelText: 'Portfolio URL',
-                  prefixIcon: Icon(Icons.link_outlined),
+                decoration: InputDecoration(
+                  labelText: _isFreelancer ? 'Portfolio URL' : 'Company website',
+                  hintText: _isFreelancer ? null : 'https://yourcompany.com',
+                  prefixIcon: Icon(
+                    _isFreelancer ? Icons.link_outlined : Icons.language_outlined,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
