@@ -29,19 +29,19 @@ class _ProjectCompletionPageState
         backgroundColor: AppColors.surface,
         shape:
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           'Mark as Completed?',
           style: TextStyle(
               fontWeight: FontWeight.w700, color: AppColors.textPrimary),
         ),
-        content: const Text(
+        content: Text(
           'This will mark the project as completed. This action cannot be undone.',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -134,7 +134,7 @@ class _ProjectCompletionPageState
                   size: 40, color: Color(0xFF2E7D32)),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Project Completed! 🎉',
               style: TextStyle(
                 fontSize: 18,
@@ -144,7 +144,7 @@ class _ProjectCompletionPageState
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Great work! The project has been marked as completed.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -179,16 +179,16 @@ class _ProjectCompletionPageState
         elevation: 0,
       ),
       body: projectAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
         error: (e, _) => Center(
           child: Text('Error: $e',
               style:
-              const TextStyle(color: AppColors.textSecondary)),
+              TextStyle(color: AppColors.textSecondary)),
         ),
         data: (project) {
           if (project == null) {
-            return const Center(
+            return Center(
                 child: Text('Project not found.',
                     style: TextStyle(color: AppColors.textSecondary)));
           }
@@ -214,7 +214,7 @@ class _ProjectCompletionPageState
                     children: [
                       Text(
                         project['title'] ?? 'Untitled Project',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -223,7 +223,7 @@ class _ProjectCompletionPageState
                       const SizedBox(height: 8),
                       Text(
                         project['description'] ?? '',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
                           height: 1.5,
@@ -232,11 +232,11 @@ class _ProjectCompletionPageState
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          const Icon(Icons.attach_money,
+                          Icon(Icons.attach_money,
                               size: 16, color: AppColors.primary),
                           Text(
                             '\$${project['budget_min']} – \$${project['budget_max']}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primary,
@@ -252,7 +252,7 @@ class _ProjectCompletionPageState
                 // ── Hired Freelancer Card ─────────────────
                 if (isClosed || isCompleted)
                   freelancerAsync.when(
-                    loading: () => const Center(
+                    loading: () => Center(
                         child: CircularProgressIndicator(
                             color: AppColors.primary)),
                     error: (_, _) => const SizedBox.shrink(),
@@ -269,7 +269,7 @@ class _ProjectCompletionPageState
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Hired Freelancer',
                             style: TextStyle(
                               fontSize: 13,
@@ -289,7 +289,7 @@ class _ProjectCompletionPageState
                                     name.isNotEmpty
                                         ? name[0].toUpperCase()
                                         : 'F',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.w800,
                                       fontSize: 18,
@@ -303,7 +303,7 @@ class _ProjectCompletionPageState
                                     CrossAxisAlignment.start,
                                     children: [
                                       Text(name,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 15,
                                             color: AppColors.textPrimary,
@@ -311,7 +311,7 @@ class _ProjectCompletionPageState
                                       if (headline != null &&
                                           headline.isNotEmpty)
                                         Text(headline,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                                 fontSize: 12,
                                                 color:
                                                 AppColors.textSecondary)),
@@ -329,7 +329,7 @@ class _ProjectCompletionPageState
                                   ),
                                   child: Text(
                                     '\$$bidAmount',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.primary,
@@ -350,7 +350,7 @@ class _ProjectCompletionPageState
                   SizedBox(
                     width: double.infinity,
                     child: _completing
-                        ? const Center(
+                        ? Center(
                         child: CircularProgressIndicator(
                             color: AppColors.primary))
                         : ElevatedButton.icon(
@@ -470,7 +470,7 @@ class _StatusBanner extends StatelessWidget {
                         fontSize: 14,
                         color: color)),
                 Text(sublabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),

@@ -116,7 +116,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Choose profile photo',
                 style: TextStyle(
                   fontSize: 18,
@@ -240,7 +240,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ),
       ),
       body: _loadingProfile
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             )
           : SingleChildScrollView(
@@ -281,7 +281,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                       : null,
                             ),
                             child: _avatarBytes == null && _avatarUrl == null
-                                ? const Icon(
+                                ? Icon(
                                     Icons.person_rounded,
                                     color: AppColors.primary,
                                     size: 46,
@@ -410,7 +410,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               SizedBox(
                 width: double.infinity,
                 child: _saving
-                    ? const Center(
+                    ? Center(
                   child: CircularProgressIndicator(
                     color: AppColors.primary,
                   ),
@@ -459,7 +459,7 @@ class _PhotoOption extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),

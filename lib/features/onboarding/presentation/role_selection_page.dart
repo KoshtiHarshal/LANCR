@@ -55,14 +55,14 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
             children: [
               Text(
                 'Hi ${email.split('@').first} 👋',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'How will you use Lancr?',
                 style: TextStyle(
                   fontSize: 16,
@@ -93,7 +93,7 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
               SizedBox(
                 width: double.infinity,
                 child: _loading
-                    ? const Center(
+                    ? Center(
                   child: CircularProgressIndicator(
                     color: AppColors.primary,
                   ),
@@ -169,7 +169,7 @@ class _RoleCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
                     ),
@@ -178,7 +178,7 @@ class _RoleCard extends StatelessWidget {
               ),
             ),
             if (selected)
-              const Icon(Icons.check_circle,
+              Icon(Icons.check_circle,
                   color: AppColors.primary, size: 20),
           ],
         ),

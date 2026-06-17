@@ -123,13 +123,13 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.work_outline,
+                      Icon(Icons.work_outline,
                           color: AppColors.primary, size: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           p['title'] ?? '',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
                             fontSize: 14,
@@ -144,7 +144,7 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
               const SizedBox(height: 24),
 
               // ── Bid Amount ────────────────────────────
-              const Text(
+              Text(
                 'Your Bid (USD)',
                 style: TextStyle(
                   fontSize: 14,
@@ -171,7 +171,7 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
               const SizedBox(height: 20),
 
               // ── Cover Letter ──────────────────────────
-              const Text(
+              Text(
                 'Cover Letter',
                 style: TextStyle(
                   fontSize: 14,
@@ -180,7 +180,7 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 "Explain why you're the best fit for this project.",
                 style:
                 TextStyle(fontSize: 12, color: AppColors.textSecondary),
@@ -209,7 +209,7 @@ class _SubmitProposalPageState extends ConsumerState<SubmitProposalPage> {
               SizedBox(
                 width: double.infinity,
                 child: _submitting
-                    ? const Center(
+                    ? Center(
                   child:
                   CircularProgressIndicator(color: AppColors.primary),
                 )

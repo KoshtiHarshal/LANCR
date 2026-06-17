@@ -220,7 +220,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
         ),
       ),
       body: _isLoadingData
-          ? const Center(
+          ? Center(
         child:
         CircularProgressIndicator(color: AppColors.primary),
       )
@@ -237,7 +237,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                 _isEditMode
                     ? 'Update Project Details'
                     : 'Project Details',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -248,7 +248,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                 _isEditMode
                     ? 'Update your project info. Changes are visible immediately.'
                     : 'Describe your project clearly to attract the right freelancers.',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary),
               ),
@@ -366,7 +366,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Separate skills with commas.',
                 style: TextStyle(
                     fontSize: 12,
@@ -405,7 +405,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
 
   Widget _label(String text) => Text(
     text,
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: AppColors.textPrimary,

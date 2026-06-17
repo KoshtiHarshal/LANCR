@@ -4,15 +4,21 @@ import 'app_colors.dart';
 class AppTheme {
   static ThemeData get theme => ThemeData(
     useMaterial3: true,
+    brightness: AppColors.isDark ? Brightness.dark : Brightness.light,
     scaffoldBackgroundColor: AppColors.background,
-    colorScheme: ColorScheme.light(
+    colorScheme: ColorScheme(
+      brightness: AppColors.isDark ? Brightness.dark : Brightness.light,
       primary: AppColors.primary,
+      onPrimary: AppColors.isDark ? const Color(0xFF06231F) : AppColors.white,
+      secondary: AppColors.primary,
+      onSecondary: AppColors.isDark ? const Color(0xFF06231F) : AppColors.white,
       surface: AppColors.surface,
-      onPrimary: AppColors.white,
       onSurface: AppColors.textPrimary,
+      error: const Color(0xFFD94F4F),
+      onError: AppColors.white,
     ),
     fontFamily: 'Inter',
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: AppColors.background,
       elevation: 0,
       centerTitle: false,
@@ -29,7 +35,7 @@ class AppTheme {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.shadow, width: 1),
+        side: BorderSide(color: AppColors.shadow, width: 1),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -51,8 +57,8 @@ class AppTheme {
         textStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
       ),
     ),
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: AppColors.white,
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: AppColors.surface,
       selectedItemColor: AppColors.primary,
       unselectedItemColor: AppColors.textSecondary,
       type: BottomNavigationBarType.fixed,

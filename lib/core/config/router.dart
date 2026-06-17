@@ -24,6 +24,8 @@ import '../../features/messages/presentation/chat_page.dart';
 import '../../features/portfolio/presentation/manage_portfolio_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../presentation/main_shell_page.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_logo.dart';
 import '../../../main.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -109,22 +111,14 @@ class SplashPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEDE8E1),
+      backgroundColor: AppColors.background,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Text(
-              'Lancr',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF00A19B),
-                letterSpacing: -1,
-              ),
-            ),
-            SizedBox(height: 24),
-            CircularProgressIndicator(color: Color(0xFF00A19B)),
+          children: [
+            const AppLogo(size: 220),
+            const SizedBox(height: 24),
+            CircularProgressIndicator(color: AppColors.primary),
           ],
         ),
       ),

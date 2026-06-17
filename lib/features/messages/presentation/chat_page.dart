@@ -89,14 +89,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           'Mark as Complete?',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
         ),
-        content: const Text(
+        content: Text(
           'This will mark the project as completed. This action cannot be undone.',
           style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -190,7 +190,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Great work! The project has been marked as completed.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -240,7 +240,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             if (widget.projectTitle.isNotEmpty)
               Text(
                 widget.projectTitle,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11, color: AppColors.textSecondary),
               ),
           ],
@@ -248,7 +248,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         actions: [
           if (canComplete)
             _completing
-                ? const Padding(
+                ? Padding(
               padding: EdgeInsets.only(right: 16),
               child: SizedBox(
                 width: 20,
@@ -259,9 +259,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             )
                 : TextButton.icon(
               onPressed: _markComplete,
-              icon: const Icon(Icons.task_alt_outlined,
+              icon: Icon(Icons.task_alt_outlined,
                   size: 16, color: AppColors.primary),
-              label: const Text('Complete',
+              label: Text('Complete',
                   style: TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
@@ -281,13 +281,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           // ── Messages list ───────────────────────────
           Expanded(
             child: messagesAsync.when(
-              loading: () => const Center(
+              loading: () => Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
               error: (e, _) => Center(
                 child: Text(e.toString(),
                     style:
-                    const TextStyle(color: AppColors.textSecondary)),
+                    TextStyle(color: AppColors.textSecondary)),
               ),
               data: (messages) {
                 _scrollToBottom();
@@ -301,7 +301,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                             color: AppColors.textSecondary
                                 .withValues(alpha: 0.3)),
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           'No messages yet.\nSay hello! 👋',
                           textAlign: TextAlign.center,
                           style:
@@ -366,7 +366,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     child: Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),

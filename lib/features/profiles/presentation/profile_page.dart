@@ -30,7 +30,7 @@ class ProfilePage extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: profileAsync.when(
-          loading: () => const Center(
+          loading: () => Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
           error: (_, _) => _ProfileError(
@@ -111,7 +111,7 @@ class _ProfileBody extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'My profile',
                   style: TextStyle(
@@ -175,7 +175,7 @@ class _ProfileBody extends ConsumerWidget {
               icon: Icons.auto_awesome_outlined,
               title: 'Skills & expertise',
               child: skills.isEmpty
-                  ? const Text(
+                  ? Text(
                       'Add your strongest skills to improve project matching.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
@@ -210,7 +210,7 @@ class _ProfileBody extends ConsumerWidget {
                       label: const Text('Manage portfolio'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                        side: BorderSide(color: AppColors.primary),
                       ),
                     ),
                   ),
@@ -243,7 +243,7 @@ class _TopAction extends StatelessWidget {
       style: IconButton.styleFrom(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.primary,
-        side: const BorderSide(color: AppColors.shadow),
+        side: BorderSide(color: AppColors.shadow),
       ),
       icon: Icon(icon, size: 20),
     );
@@ -276,8 +276,8 @@ class _IdentityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF5F1EC), Color(0xFFE0F5F4)],
+        gradient: LinearGradient(
+          colors: [AppColors.surface, AppColors.primaryLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -321,7 +321,7 @@ class _IdentityCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.shadow),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.camera_alt_rounded,
                     size: 15,
                     color: AppColors.primary,
@@ -342,7 +342,7 @@ class _IdentityCard extends StatelessWidget {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 21,
                           fontWeight: FontWeight.w800,
@@ -352,7 +352,7 @@ class _IdentityCard extends StatelessWidget {
                     ),
                     if (emailVerified) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.verified_rounded,
+                      Icon(Icons.verified_rounded,
                           color: AppColors.primary, size: 18),
                     ],
                   ],
@@ -362,7 +362,7 @@ class _IdentityCard extends StatelessWidget {
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
                     height: 1.35,
@@ -380,7 +380,7 @@ class _IdentityCard extends StatelessWidget {
                   ),
                   child: Text(
                     isClient ? 'CLIENT' : 'FREELANCER',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -418,7 +418,7 @@ class _StatsCard extends ConsumerWidget {
         border: Border.all(color: AppColors.shadow),
       ),
       child: stats.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(
             color: AppColors.primary,
             strokeWidth: 2,
@@ -478,7 +478,7 @@ class _Stat extends StatelessWidget {
           ),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 11,
             ),
@@ -534,7 +534,7 @@ class _CompletionCard extends StatelessWidget {
                   ),
                   Text(
                     '$percent%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -544,7 +544,7 @@ class _CompletionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 13),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -566,7 +566,7 @@ class _CompletionCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
               color: AppColors.primary,
               size: 14,
@@ -615,7 +615,7 @@ class _SectionCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -647,7 +647,7 @@ class _SkillChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.primary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -668,7 +668,7 @@ class _ProfileError extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.person_off_outlined,
             size: 48,
             color: AppColors.textSecondary,

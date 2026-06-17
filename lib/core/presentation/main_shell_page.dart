@@ -58,7 +58,8 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
       _lastBackPress = now;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Press back again to exit'),
+          content: Text('Press back again to exit',
+              style: TextStyle(color: AppColors.background)),
           duration: const Duration(seconds: 2),
           backgroundColor: AppColors.textPrimary,
           behavior: SnackBarBehavior.floating,
@@ -82,7 +83,7 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
     final roleAsync = ref.watch(currentUserRoleProvider);
 
     return roleAsync.when(
-      loading: () => const Scaffold(
+      loading: () => Scaffold(
         backgroundColor: AppColors.background,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -212,7 +213,7 @@ class PlaceholderPage extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               '$label – coming soon',
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ],
         ),

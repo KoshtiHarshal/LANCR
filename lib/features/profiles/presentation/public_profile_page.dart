@@ -20,7 +20,7 @@ class PublicProfilePage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: profileAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (_, _) => _ErrorState(
@@ -177,7 +177,7 @@ class _ProfileContent extends ConsumerWidget {
                     icon: Icons.auto_awesome_outlined,
                     title: 'Skills & expertise',
                     child: skills.isEmpty
-                        ? const Text(
+                        ? Text(
                       'Skills have not been added yet.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
@@ -213,7 +213,7 @@ class _ProfileContent extends ConsumerWidget {
                             value: portfolio,
                           ),
                         if (portfolio != null && linkedin != null)
-                          const Divider(color: AppColors.shadow),
+                          Divider(color: AppColors.shadow),
                         if (linkedin != null)
                           _LinkRow(
                             icon: Icons.badge_outlined,
@@ -426,7 +426,7 @@ class _StatsCard extends ConsumerWidget {
         : ref.watch(freelancerStatsProvider(userId));
 
     return stats.when(
-      loading: () => const _StatsShell(
+      loading: () => _StatsShell(
         children: [CircularProgressIndicator(color: AppColors.primary)],
       ),
       error: (_, _) => const SizedBox.shrink(),
@@ -512,7 +512,7 @@ class _Stat extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -558,7 +558,7 @@ class _InfoPill extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,
             ),
@@ -583,7 +583,7 @@ class _ClientProjectsSection extends ConsumerWidget {
         icon: Icons.work_outline_rounded,
         title: 'Open projects',
         child: projects.isEmpty
-            ? const Text(
+            ? Text(
                 'No open projects right now.',
                 style: TextStyle(
                   color: AppColors.textSecondary,
@@ -595,7 +595,7 @@ class _ClientProjectsSection extends ConsumerWidget {
                   for (var i = 0; i < projects.length; i++) ...[
                     _ClientProjectRow(project: projects[i]),
                     if (i != projects.length - 1)
-                      const Divider(color: AppColors.shadow, height: 18),
+                      Divider(color: AppColors.shadow, height: 18),
                   ],
                 ],
               ),
@@ -628,7 +628,7 @@ class _ClientProjectRow extends StatelessWidget {
                 color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(9),
               ),
-              child: const Icon(Icons.assignment_outlined,
+              child: Icon(Icons.assignment_outlined,
                   color: AppColors.primary, size: 16),
             ),
             const SizedBox(width: 12),
@@ -640,7 +640,7 @@ class _ClientProjectRow extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
@@ -649,7 +649,7 @@ class _ClientProjectRow extends StatelessWidget {
                   if (budget != null)
                     Text(
                       budget,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -658,7 +658,7 @@ class _ClientProjectRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
+            Icon(Icons.arrow_forward_ios_rounded,
                 size: 13, color: AppColors.textSecondary),
           ],
         ),
@@ -704,7 +704,7 @@ class _SectionCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -736,7 +736,7 @@ class _SkillChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.primary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -781,7 +781,7 @@ class _LinkRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
@@ -791,7 +791,7 @@ class _LinkRow extends StatelessWidget {
                     value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
                     ),
@@ -799,7 +799,7 @@ class _LinkRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.open_in_new_rounded,
+            Icon(Icons.open_in_new_rounded,
                 size: 16, color: AppColors.primary),
           ],
         ),
@@ -819,13 +819,13 @@ class _ErrorState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.person_off_outlined,
             color: AppColors.textSecondary,
             size: 48,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Could not load this profile',
             style: TextStyle(
               color: AppColors.textPrimary,

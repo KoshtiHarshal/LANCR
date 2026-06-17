@@ -18,14 +18,14 @@ class MyProposalsPage extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('My Proposals')),
       body: proposalsAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
+              Icon(Icons.error_outline,
                   size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 12),
               Padding(
@@ -33,7 +33,7 @@ class MyProposalsPage extends ConsumerWidget {
                 child: Text(
                   e.toString().replaceFirst('Exception: ', ''),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               const SizedBox(height: 16),
@@ -54,7 +54,7 @@ class MyProposalsPage extends ConsumerWidget {
                       size: 64,
                       color: AppColors.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No proposals yet',
                     style: TextStyle(
                       fontSize: 18,
@@ -63,7 +63,7 @@ class MyProposalsPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Browse projects and submit\nyour first proposal.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -161,7 +161,7 @@ class _StatPill extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 11, color: AppColors.textSecondary)),
       ],
     );
@@ -249,7 +249,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                         : null,
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -293,7 +293,7 @@ class _ProposalCardState extends State<_ProposalCard> {
               description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
                   height: 1.5),
@@ -306,12 +306,12 @@ class _ProposalCardState extends State<_ProposalCard> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                const Icon(Icons.payments_outlined,
+                Icon(Icons.payments_outlined,
                     size: 14, color: AppColors.primary),
                 const SizedBox(width: 4),
                 Text(
                   'Your bid: \$${bidAmount ?? '—'}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
@@ -334,7 +334,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                 children: [
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Cover Letter',
                         style: TextStyle(
                           fontSize: 12,
@@ -356,7 +356,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                     const SizedBox(height: 6),
                     Text(
                       coverLetter,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                           height: 1.6),

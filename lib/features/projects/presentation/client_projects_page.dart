@@ -63,20 +63,20 @@ class ClientProjectsPage extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('My Projects')),
       body: projectsAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
+              Icon(Icons.error_outline,
                   size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 12),
               Text(
                 e.toString().replaceFirst('Exception: ', ''),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -96,7 +96,7 @@ class ClientProjectsPage extends ConsumerWidget {
                       size: 64,
                       color: AppColors.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No projects yet',
                     style: TextStyle(
                       fontSize: 18,
@@ -105,7 +105,7 @@ class ClientProjectsPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Post a project to start\nreceiving proposals.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -149,7 +149,7 @@ class ClientProjectsPage extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               project['title'] ?? '',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary,
@@ -182,7 +182,7 @@ class ClientProjectsPage extends ConsumerWidget {
                         project['description'] ?? '',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
                           height: 1.5,
@@ -204,7 +204,7 @@ class ClientProjectsPage extends ConsumerWidget {
                               ),
                               child: Text(
                                 '\$${project['budget_min'] ?? '?'} – \$${project['budget_max'] ?? '?'}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.primary,

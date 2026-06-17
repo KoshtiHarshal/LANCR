@@ -37,20 +37,20 @@ class ConversationsPage extends ConsumerWidget {
         ],
       ),
       body: conversationsAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
+              Icon(Icons.error_outline,
                   size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 12),
               Text(
                 e.toString().replaceFirst('Exception: ', ''),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -74,7 +74,7 @@ class ConversationsPage extends ConsumerWidget {
                       color: AppColors.textSecondary.withValues(alpha: 0.3),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'No messages yet',
                       style: TextStyle(
                         fontSize: 20,
@@ -83,7 +83,7 @@ class ConversationsPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Conversations appear here once a\nproposal is accepted on a project.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -123,7 +123,7 @@ class ConversationsPage extends ConsumerWidget {
                     backgroundColor: AppColors.primaryLight,
                     child: Text(
                       initial,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w800,
                         fontSize: 18,
@@ -135,7 +135,7 @@ class ConversationsPage extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           conv.otherPersonName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
                             color: AppColors.textPrimary,
@@ -145,7 +145,7 @@ class ConversationsPage extends ConsumerWidget {
                       ),
                       Text(
                         _timeAgo(conv.lastMessageAt),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,
                         ),
@@ -166,7 +166,7 @@ class ConversationsPage extends ConsumerWidget {
                         ),
                         child: Text(
                           conv.projectTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,

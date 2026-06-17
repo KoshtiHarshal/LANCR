@@ -98,7 +98,7 @@ class FreelancerHomePage extends ConsumerWidget {
                         data: (list) => list.isNotEmpty
                             ? GestureDetector(
                           onTap: () => context.push('/proposals'),
-                          child: const Text(
+                          child: Text(
                             'See all →',
                             style: TextStyle(
                               fontSize: 13,
@@ -115,7 +115,7 @@ class FreelancerHomePage extends ConsumerWidget {
                   const SizedBox(height: 12),
 
                   activeAsync.when(
-                    loading: () => const Center(
+                    loading: () => Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 32),
                         child: CircularProgressIndicator(
@@ -422,7 +422,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
@@ -530,7 +530,7 @@ class _StatTile extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -540,7 +540,7 @@ class _StatTile extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
@@ -636,7 +636,7 @@ class _ActiveProjectCard extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          const Icon(Icons.arrow_forward_ios_rounded,
+                          Icon(Icons.arrow_forward_ios_rounded,
                               size: 13,
                               color: AppColors.textSecondary),
                         ],
@@ -644,7 +644,7 @@ class _ActiveProjectCard extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -753,15 +753,15 @@ class _EmptyState extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.work_outline_rounded,
+              child: Icon(Icons.work_outline_rounded,
                   color: AppColors.primary, size: 28),
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'No active projects yet',
               style: TextStyle(
                 fontSize: 15,
@@ -770,7 +770,7 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Browse open projects and submit\na proposal to get hired.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -838,13 +838,13 @@ class StatCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(value,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
                     const SizedBox(height: 2),
                     Text(label,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 11,
                             color: AppColors.textSecondary)),
                   ],

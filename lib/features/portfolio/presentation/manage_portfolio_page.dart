@@ -51,7 +51,7 @@ class ManagePortfolioPage extends ConsumerWidget {
               color: AppColors.primary,
               onRefresh: () async => ref.invalidate(portfolioProvider(userId)),
               child: ref.watch(portfolioProvider(userId)).when(
-                    loading: () => const Center(
+                    loading: () => Center(
                       child: CircularProgressIndicator(color: AppColors.primary),
                     ),
                     error: (e, _) => ListView(
@@ -60,7 +60,7 @@ class ManagePortfolioPage extends ConsumerWidget {
                         Center(
                           child: Text('Could not load portfolio.\n$e',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: AppColors.textSecondary)),
                         ),
                       ],
@@ -96,7 +96,7 @@ class _EmptyPortfolio extends StatelessWidget {
         Icon(Icons.work_outline_rounded,
             size: 64, color: AppColors.textSecondary.withValues(alpha: 0.4)),
         const SizedBox(height: 16),
-        const Center(
+        Center(
           child: Text(
             'No portfolio items yet',
             style: TextStyle(
@@ -107,7 +107,7 @@ class _EmptyPortfolio extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const Center(
+        Center(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
@@ -139,17 +139,17 @@ class _ManageTile extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete item?',
+        title: Text('Delete item?',
             style: TextStyle(
                 fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-        content: const Text(
+        content: Text(
           'This portfolio item will be permanently removed.',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -208,7 +208,7 @@ class _ManageTile extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
@@ -220,7 +220,7 @@ class _ManageTile extends StatelessWidget {
                       description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
                         height: 1.35,
@@ -237,7 +237,7 @@ class _ManageTile extends StatelessWidget {
                   userId: userId, existing: item);
               if (changed == true) onChanged();
             },
-            icon: const Icon(Icons.edit_outlined,
+            icon: Icon(Icons.edit_outlined,
                 size: 20, color: AppColors.primary),
             tooltip: 'Edit',
           ),
@@ -391,7 +391,7 @@ class _PortfolioFormSheetState extends State<_PortfolioFormSheet> {
             children: [
               Text(
                 _isEdit ? 'Edit portfolio item' : 'Add portfolio item',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
@@ -421,7 +421,7 @@ class _PortfolioFormSheetState extends State<_PortfolioFormSheet> {
                       label: const Text('Gallery'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                        side: BorderSide(color: AppColors.primary),
                       ),
                     ),
                   ),
@@ -434,7 +434,7 @@ class _PortfolioFormSheetState extends State<_PortfolioFormSheet> {
                       label: const Text('Camera'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                        side: BorderSide(color: AppColors.primary),
                       ),
                     ),
                   ),

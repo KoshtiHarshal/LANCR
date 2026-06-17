@@ -252,7 +252,7 @@ class ProjectDetailPage extends ConsumerWidget {
                               child:
                               clientProfile?['avatar_url'] ==
                                   null
-                                  ? const Icon(
+                                  ? Icon(
                                 Icons
                                     .person_outline_rounded,
                                 color: AppColors.primary,
@@ -268,7 +268,7 @@ class ProjectDetailPage extends ConsumerWidget {
                                 children: [
                                   Text(
                                     clientName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.textPrimary,
@@ -278,7 +278,7 @@ class ProjectDetailPage extends ConsumerWidget {
                                       clientCompany.isNotEmpty)
                                     Text(
                                       clientCompany,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         color:
                                         AppColors.textSecondary,
@@ -288,7 +288,7 @@ class ProjectDetailPage extends ConsumerWidget {
                                       clientLocation.isNotEmpty)
                                     Row(
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons
                                               .location_on_outlined,
                                           size: 11,
@@ -298,7 +298,7 @@ class ProjectDetailPage extends ConsumerWidget {
                                         const SizedBox(width: 2),
                                         Text(
                                           clientLocation,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 11,
                                             color: AppColors
                                                 .textSecondary,
@@ -310,7 +310,7 @@ class ProjectDetailPage extends ConsumerWidget {
                               ),
                             ),
                             if (clientId != null)
-                              const Icon(
+                              Icon(
                                 Icons.arrow_forward_ios_rounded,
                                 size: 14,
                                 color: AppColors.textSecondary,
@@ -330,7 +330,7 @@ class ProjectDetailPage extends ConsumerWidget {
                           clientBio,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                             height: 1.5,
@@ -345,7 +345,7 @@ class ProjectDetailPage extends ConsumerWidget {
                     const SizedBox(height: 10),
                     Text(
                       project['description'] ?? '',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
                         height: 1.7,
@@ -377,7 +377,7 @@ class ProjectDetailPage extends ConsumerWidget {
                             ),
                             child: Text(
                               skill,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.textSecondary,
@@ -449,7 +449,7 @@ class ProjectDetailPage extends ConsumerWidget {
                                 border: Border.all(
                                     color: AppColors.shadow),
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Text(
                                   'This project is no longer accepting proposals',
                                   style: TextStyle(
@@ -558,7 +558,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
@@ -604,7 +604,7 @@ class _DetailChip extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11, color: AppColors.textSecondary),
               ),
             ],
@@ -706,7 +706,7 @@ class _ProposalStatusBanner extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       _subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
@@ -718,9 +718,9 @@ class _ProposalStatusBanner extends StatelessWidget {
           ),
           if (coverLetter != null && coverLetter!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Divider(color: AppColors.shadow, height: 1),
+            Divider(color: AppColors.shadow, height: 1),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Your Cover Letter',
               style: TextStyle(
                 fontSize: 12,
@@ -733,7 +733,7 @@ class _ProposalStatusBanner extends StatelessWidget {
               coverLetter!,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
                 height: 1.5,
@@ -865,10 +865,10 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline,
+            Icon(Icons.error_outline,
                 size: 52, color: AppColors.textSecondary),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Could not load project',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
@@ -879,7 +879,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),

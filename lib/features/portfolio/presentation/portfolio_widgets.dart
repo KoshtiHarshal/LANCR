@@ -29,18 +29,18 @@ class PortfolioGallery extends ConsumerWidget {
     final itemsAsync = ref.watch(portfolioProvider(userId));
 
     return itemsAsync.when(
-      loading: () => const Padding(
+      loading: () => Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       ),
-      error: (_, _) => const Text(
+      error: (_, _) => Text(
         'Could not load portfolio.',
         style: TextStyle(color: AppColors.textSecondary),
       ),
       data: (items) {
         if (items.isEmpty) {
           return showEmptyHint
-              ? const Text(
+              ? Text(
                   'No portfolio items yet.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
@@ -105,7 +105,7 @@ class PortfolioCard extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
@@ -122,7 +122,7 @@ class PortfolioCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         hasLink ? 'Has link' : 'Project',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 11,
                         ),
@@ -149,7 +149,7 @@ class PortfolioImage extends StatelessWidget {
     if (url == null || url!.isEmpty) {
       return Container(
         color: AppColors.primaryLight,
-        child: const Icon(Icons.image_outlined,
+        child: Icon(Icons.image_outlined,
             color: AppColors.primary, size: 30),
       );
     }
@@ -160,7 +160,7 @@ class PortfolioImage extends StatelessWidget {
         if (progress == null) return child;
         return Container(
           color: AppColors.primaryLight,
-          child: const Center(
+          child: Center(
             child: SizedBox(
               width: 20,
               height: 20,
@@ -172,7 +172,7 @@ class PortfolioImage extends StatelessWidget {
       },
       errorBuilder: (_, _, _) => Container(
         color: AppColors.primaryLight,
-        child: const Icon(Icons.broken_image_outlined,
+        child: Icon(Icons.broken_image_outlined,
             color: AppColors.primary, size: 28),
       ),
     );
@@ -215,7 +215,7 @@ Future<void> showPortfolioDetail(
               const SizedBox(height: 16),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
@@ -225,7 +225,7 @@ Future<void> showPortfolioDetail(
                 const SizedBox(height: 10),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
                     height: 1.55,
@@ -256,7 +256,7 @@ Future<void> showPortfolioDetail(
                 const SizedBox(height: 8),
                 SelectableText(
                   link,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
                   ),

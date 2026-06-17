@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/utils/url_launcher_util.dart';
 import '../../../main.dart';
 import '../../auth/presentation/auth_provider.dart';
@@ -86,17 +87,17 @@ class SettingsPage extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Change password',
+        title: Text('Change password',
             style: TextStyle(
                 fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         content: Text(
           'We\'ll email a password reset link to $email.',
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -125,7 +126,7 @@ class SettingsPage extends ConsumerWidget {
         title: const Text('Delete account?',
             style: TextStyle(
                 fontWeight: FontWeight.w800, color: Color(0xFFD94F4F))),
-        content: const Text(
+        content: Text(
           'This permanently deletes your LANCR account and all of your data — '
           'profile, projects, proposals, messages, reviews and portfolio. '
           'This cannot be undone.',
@@ -134,7 +135,7 @@ class SettingsPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -163,17 +164,17 @@ class SettingsPage extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Sign out?',
+        title: Text('Sign out?',
             style: TextStyle(
                 fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-        content: const Text(
+        content: Text(
           'You will need to sign in again to access your LANCR account.',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           FilledButton(
@@ -206,10 +207,10 @@ class SettingsPage extends ConsumerWidget {
         ),
       ),
       body: profileAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-        error: (_, _) => const Center(
+        error: (_, _) => Center(
           child: Text('Could not load settings',
               style: TextStyle(color: AppColors.textSecondary)),
         ),
@@ -290,7 +291,7 @@ class SettingsPage extends ConsumerWidget {
                       icon: Icons.language_rounded,
                       title: isClient ? 'Website' : 'Portfolio',
                       subtitle: website,
-                      trailing: const Icon(Icons.open_in_new_rounded,
+                      trailing: Icon(Icons.open_in_new_rounded,
                           size: 16, color: AppColors.primary),
                       onTap: () => _open(context, website),
                     ),
@@ -299,13 +300,18 @@ class SettingsPage extends ConsumerWidget {
                       icon: Icons.badge_outlined,
                       title: 'LinkedIn',
                       subtitle: linkedin,
-                      trailing: const Icon(Icons.open_in_new_rounded,
+                      trailing: Icon(Icons.open_in_new_rounded,
                           size: 16, color: AppColors.primary),
                       onTap: () => _open(context, linkedin),
                     ),
                 ]),
                 const SizedBox(height: 18),
               ],
+
+              // ── Appearance ──────────────────────────────
+              const _SectionHeader('Appearance'),
+              const _SettingsCard(children: [_ThemeModeSelector()]),
+              const SizedBox(height: 18),
 
               // ── Notifications ───────────────────────────
               const _SectionHeader('Notifications'),
@@ -389,7 +395,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.textSecondary,
           fontSize: 12,
           fontWeight: FontWeight.w700,
@@ -418,7 +424,7 @@ class _SettingsCard extends StatelessWidget {
           for (var i = 0; i < children.length; i++) ...[
             children[i],
             if (i != children.length - 1)
-              const Divider(height: 1, color: AppColors.shadow),
+              Divider(height: 1, color: AppColors.shadow),
           ],
         ],
       ),
@@ -472,7 +478,7 @@ class _SettingsTile extends StatelessWidget {
                       subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
@@ -514,7 +520,7 @@ class _InfoRow extends StatelessWidget {
           const SizedBox(width: 14),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
             ),
@@ -526,7 +532,7 @@ class _InfoRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.end,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -541,6 +547,69 @@ class _InfoRow extends StatelessWidget {
 
 /// Local push-notification preference (persists the user's choice; it will be
 /// honoured once push notifications are wired up).
+class _ThemeModeSelector extends ConsumerWidget {
+  const _ThemeModeSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    const options = [
+      (ThemeMode.system, Icons.brightness_auto_rounded, 'System'),
+      (ThemeMode.light, Icons.light_mode_outlined, 'Light'),
+      (ThemeMode.dark, Icons.dark_mode_outlined, 'Dark'),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          for (final (m, icon, label) in options)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => ref.read(themeModeProvider.notifier).setMode(m),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: mode == m
+                        ? AppColors.primaryLight
+                        : AppColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: mode == m ? AppColors.primary : AppColors.shadow,
+                      width: mode == m ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(icon,
+                          size: 22,
+                          color: mode == m
+                              ? AppColors.primary
+                              : AppColors.textSecondary),
+                      const SizedBox(height: 6),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              mode == m ? FontWeight.w700 : FontWeight.w500,
+                          color: mode == m
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NotificationPrefTile extends StatefulWidget {
   const _NotificationPrefTile();
 
@@ -580,9 +649,9 @@ class _NotificationPrefTileState extends State<_NotificationPrefTile> {
       onChanged: _loaded ? _set : null,
       activeThumbColor: AppColors.primary,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      secondary: const Icon(Icons.notifications_none_rounded,
+      secondary: Icon(Icons.notifications_none_rounded,
           color: AppColors.primary, size: 20),
-      title: const Text(
+      title: Text(
         'Push notifications',
         style: TextStyle(
           color: AppColors.textPrimary,
@@ -590,7 +659,7 @@ class _NotificationPrefTileState extends State<_NotificationPrefTile> {
           fontSize: 14,
         ),
       ),
-      subtitle: const Text(
+      subtitle: Text(
         'Proposals, messages and project updates',
         style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
       ),

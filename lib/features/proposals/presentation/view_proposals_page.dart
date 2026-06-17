@@ -51,14 +51,14 @@ class ViewProposalsPage extends ConsumerWidget {
         ],
       ),
       body: proposalsAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
+              Icon(Icons.error_outline,
                   size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 12),
               Padding(
@@ -66,7 +66,7 @@ class ViewProposalsPage extends ConsumerWidget {
                 child: Text(
                   e.toString().replaceFirst('Exception: ', ''),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               const SizedBox(height: 16),
@@ -88,7 +88,7 @@ class ViewProposalsPage extends ConsumerWidget {
                       size: 64,
                       color: AppColors.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No proposals yet',
                     style: TextStyle(
                       fontSize: 18,
@@ -97,7 +97,7 @@ class ViewProposalsPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Proposals will appear here\nonce freelancers apply.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -311,15 +311,15 @@ class _ProposalCardState extends State<_ProposalCard> {
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
         title: Text(title,
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary)),
         content: Text(message,
-            style: const TextStyle(color: AppColors.textSecondary)),
+            style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
@@ -376,7 +376,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                     backgroundColor: AppColors.primaryLight,
                     child: Text(
                       name.isNotEmpty ? name[0].toUpperCase() : 'F',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w800,
                         fontSize: 18,
@@ -397,14 +397,14 @@ class _ProposalCardState extends State<_ProposalCard> {
                           children: [
                             Text(
                               name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
                                 color: AppColors.textPrimary,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.open_in_new,
+                            Icon(Icons.open_in_new,
                                 size: 13, color: AppColors.primary),
                           ],
                         ),
@@ -417,7 +417,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                                 const SizedBox(width: 4),
                                 Text(
                                   '${ratingAvg.toStringAsFixed(1)} ($ratingCount)',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     color: AppColors.textSecondary,
                                   ),
@@ -428,18 +428,18 @@ class _ProposalCardState extends State<_ProposalCard> {
                         if (headline != null && headline.isNotEmpty)
                           Text(
                             headline,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary),
                           ),
                         if (location != null && location.isNotEmpty)
                           Row(
                             children: [
-                              const Icon(Icons.location_on_outlined,
+                              Icon(Icons.location_on_outlined,
                                   size: 12, color: AppColors.textSecondary),
                               Text(
                                 location,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textSecondary),
                               ),
@@ -508,7 +508,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                     border: Border.all(color: AppColors.shadow),
                   ),
                   child: Text(s,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary)),
                 ))
@@ -527,7 +527,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                 children: [
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Cover Letter',
                         style: TextStyle(
                           fontSize: 13,
@@ -551,7 +551,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                     maxLines: _expanded ? null : 2,
                     overflow:
                     _expanded ? null : TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
                       height: 1.5,
@@ -576,7 +576,7 @@ class _ProposalCardState extends State<_ProposalCard> {
                   label: const Text('View Full Profile'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
+                    side: BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -589,7 +589,7 @@ class _ProposalCardState extends State<_ProposalCard> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: _loading
-                  ? const Center(
+                  ? Center(
                   child: CircularProgressIndicator(
                       color: AppColors.primary))
                   : isPending

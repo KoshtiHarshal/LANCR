@@ -120,7 +120,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
             // ── Header ─────────────────────────────────
             SliverToBoxAdapter(
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.primary, Color(0xFF007A75)],
                     begin: Alignment.topLeft,
@@ -170,11 +170,11 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                                 backgroundColor: AppColors.surface,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16)),
-                                title: const Text('Sign Out',
+                                title: Text('Sign Out',
                                     style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.textPrimary)),
-                                content: const Text(
+                                content: Text(
                                     'Are you sure you want to sign out?',
                                     style: TextStyle(
                                         color: AppColors.textSecondary)),
@@ -182,7 +182,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                                   TextButton(
                                     onPressed: () =>
                                         Navigator.pop(ctx, false),
-                                    child: const Text('Cancel',
+                                    child: Text('Cancel',
                                         style: TextStyle(
                                             color: AppColors.textSecondary)),
                                   ),
@@ -251,7 +251,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Quick Actions',
                       style: TextStyle(
                         fontSize: 16,
@@ -297,7 +297,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Tips for Success',
                       style: TextStyle(
                         fontSize: 16,
@@ -436,13 +436,13 @@ class _ActionCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(label,
-                style: const TextStyle(
+                style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 2),
             Text(subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11, color: AppColors.textSecondary)),
           ],
         ),
@@ -491,13 +491,13 @@ class _TipCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                         color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
                 Text(body,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),

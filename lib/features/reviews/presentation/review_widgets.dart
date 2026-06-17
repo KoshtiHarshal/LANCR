@@ -153,19 +153,19 @@ class ReviewsList extends ConsumerWidget {
     final reviewsAsync = ref.watch(userReviewsProvider(userId));
 
     return reviewsAsync.when(
-      loading: () => const Padding(
+      loading: () => Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       ),
-      error: (_, _) => const Text(
+      error: (_, _) => Text(
         'Could not load reviews.',
         style: TextStyle(color: AppColors.textSecondary),
       ),
       data: (reviews) {
         if (reviews.isEmpty) {
-          return const Text(
+          return Text(
             'No reviews yet.',
             style: TextStyle(
               color: AppColors.textSecondary,
@@ -178,7 +178,7 @@ class ReviewsList extends ConsumerWidget {
             for (var i = 0; i < reviews.length; i++) ...[
               _ReviewTile(review: reviews[i]),
               if (i != reviews.length - 1)
-                const Divider(color: AppColors.shadow, height: 22),
+                Divider(color: AppColors.shadow, height: 22),
             ],
           ],
         );
@@ -220,7 +220,7 @@ class _ReviewTile extends StatelessWidget {
                 child: avatarUrl == null
                     ? Text(
                   initial,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w800,
                   ),
@@ -239,7 +239,7 @@ class _ReviewTile extends StatelessWidget {
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
@@ -247,14 +247,14 @@ class _ReviewTile extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded,
+                        Icon(Icons.chevron_right_rounded,
                             size: 16, color: AppColors.textSecondary),
                       ],
                     ),
                     if (createdLabel.isNotEmpty)
                       Text(
                         createdLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 11,
                         ),
@@ -269,7 +269,7 @@ class _ReviewTile extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               comment,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
                 height: 1.5,
@@ -312,7 +312,7 @@ class LeaveReviewCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _amber.withValues(alpha: 0.3)),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.star_rounded, size: 18, color: _amber),
                 SizedBox(width: 8),
@@ -357,7 +357,7 @@ class LeaveReviewCard extends ConsumerWidget {
                         color: _amber, size: 18),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Leave a Review',
                       style: TextStyle(
@@ -372,7 +372,7 @@ class LeaveReviewCard extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 'Share your experience working with $revieweeName.',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,
                   height: 1.5,
@@ -505,7 +505,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
           Text(
             'Review ${widget.revieweeName}',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
               fontSize: 17,
@@ -539,7 +539,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
           const SizedBox(height: 4),
           Text(
             _rating == 0 ? 'Tap a star to rate' : _labels[_rating]!,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -551,24 +551,24 @@ class _ReviewDialogState extends State<_ReviewDialog> {
             enabled: !_submitting,
             maxLines: 4,
             maxLength: 500,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'Share details about your experience (optional)',
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                   color: AppColors.textSecondary, fontSize: 13),
               filled: true,
               fillColor: AppColors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.shadow),
+                borderSide: BorderSide(color: AppColors.shadow),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.shadow),
+                borderSide: BorderSide(color: AppColors.shadow),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary),
+                borderSide: BorderSide(color: AppColors.primary),
               ),
             ),
           ),
@@ -577,7 +577,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
       actions: [
         TextButton(
           onPressed: _submitting ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancel',
+          child: Text('Cancel',
               style: TextStyle(color: AppColors.textSecondary)),
         ),
         ElevatedButton(

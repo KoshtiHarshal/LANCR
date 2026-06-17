@@ -347,17 +347,17 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                             onChanged: (val) => ref
                                 .read(searchQueryProvider.notifier)
                                 .update(val),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               color: AppColors.textPrimary,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Search title, skill, category...',
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 13,
                               ),
-                              prefixIcon: const Icon(
+                              prefixIcon: Icon(
                                 Icons.search_rounded,
                                 color: AppColors.textSecondary,
                                 size: 20,
@@ -370,7 +370,7 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                                       .read(searchQueryProvider.notifier)
                                       .clear();
                                 },
-                                child: const Icon(Icons.close_rounded,
+                                child: Icon(Icons.close_rounded,
                                     color: AppColors.textSecondary,
                                     size: 18),
                               )
@@ -389,7 +389,7 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                borderSide: const BorderSide(
+                                borderSide: BorderSide(
                                     color: AppColors.primary, width: 1.5),
                               ),
                             ),
@@ -469,7 +469,7 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                       children: [
                         Text(
                           '${filtered.length} project${filtered.length == 1 ? '' : 's'} found',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w500,
@@ -489,13 +489,13 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.filter_alt_off_rounded,
+                                  Icon(Icons.filter_alt_off_rounded,
                                       size: 13,
                                       color: AppColors.primary),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Clear ($activeFilters)',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.primary,
@@ -517,7 +517,7 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.search_off_outlined,
+                          Icon(Icons.search_off_outlined,
                               size: 52,
                               color: AppColors.textSecondary),
                           const SizedBox(height: 12),
@@ -525,7 +525,7 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                             searchQuery.isNotEmpty
                                 ? 'No results for "$searchQuery"'
                                 : 'No projects match your filters.',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 14,
                             ),
@@ -705,10 +705,10 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_outlined,
+            Icon(Icons.wifi_off_outlined,
                 size: 52, color: AppColors.textSecondary),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Could not load projects',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
@@ -719,7 +719,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
@@ -782,7 +782,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -811,7 +811,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text(
+                Text(
                   'Filters',
                   style: TextStyle(
                     fontSize: 18,
@@ -822,16 +822,16 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 const Spacer(),
                 TextButton(
                   onPressed: _reset,
-                  child: const Text('Reset',
+                  child: Text('Reset',
                       style: TextStyle(color: AppColors.primary)),
                 ),
               ],
             ),
-            const Divider(color: AppColors.shadow),
+            Divider(color: AppColors.shadow),
             const SizedBox(height: 12),
 
             // Status
-            const Text('Status',
+            Text('Status',
                 style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -883,14 +883,14 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Budget Range',
+                Text('Budget Range',
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary)),
                 Text(
                   '\$${_budget.start.toInt()} – \$${_budget.end.toInt()}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
@@ -910,7 +910,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
             const SizedBox(height: 24),
 
             // Duration
-            const Text('Duration',
+            Text('Duration',
                 style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -1083,7 +1083,7 @@ class ProjectCard extends StatelessWidget {
                           ),
                           child: Text(
                             category,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primary,
@@ -1093,7 +1093,7 @@ class ProjectCard extends StatelessWidget {
                       const Spacer(),
                       Text(
                         _timeAgo(project['created_at'] as String?),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,
                         ),
@@ -1105,7 +1105,7 @@ class ProjectCard extends StatelessWidget {
                   // Title
                   Text(
                     project['title'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -1119,7 +1119,7 @@ class ProjectCard extends StatelessWidget {
                     project['description'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
                       height: 1.4,
@@ -1175,7 +1175,7 @@ class ProjectCard extends StatelessWidget {
                           ),
                           child: Text(
                             skill,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
@@ -1187,13 +1187,13 @@ class ProjectCard extends StatelessWidget {
                     ),
 
                   const SizedBox(height: 12),
-                  const Divider(color: AppColors.shadow, height: 1),
+                  Divider(color: AppColors.shadow, height: 1),
                   const SizedBox(height: 10),
 
                   // Client info
                   Row(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 13,
                         backgroundColor: AppColors.primaryLight,
                         child: Icon(Icons.person_outline_rounded,
@@ -1203,7 +1203,7 @@ class ProjectCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           clientName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
@@ -1214,20 +1214,20 @@ class ProjectCard extends StatelessWidget {
                       if (clientLocation != null &&
                           clientLocation.isNotEmpty) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.location_on_outlined,
+                        Icon(Icons.location_on_outlined,
                             size: 12,
                             color: AppColors.textSecondary),
                         const SizedBox(width: 2),
                         Text(
                           clientLocation,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             color: AppColors.textSecondary,
                           ),
                         ),
                       ],
                       const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_ios_rounded,
+                      Icon(Icons.arrow_forward_ios_rounded,
                           size: 12, color: AppColors.textSecondary),
                     ],
                   ),

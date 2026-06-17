@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_logo.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -68,19 +69,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
-
-                // Title
-                Text(
-                  'Lancr',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                    letterSpacing: -1,
-                  ),
-                ),
                 const SizedBox(height: 8),
+
+                // Logo
+                const Center(child: AppLogo(size: 120)),
+                const SizedBox(height: 12),
                 Text(
                   'Create your account',
                   style: TextStyle(
@@ -170,7 +163,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 SizedBox(
                   width: double.infinity,
                   child: _isLoading
-                      ? const Center(
+                      ? Center(
                     child: CircularProgressIndicator(
                       color: AppColors.primary,
                     ),
@@ -187,7 +180,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 Center(
                   child: TextButton(
                     onPressed: () => context.go('/auth/login'),
-                    child: const Text(
+                    child: Text(
                       'Already have an account? Sign in',
                       style: TextStyle(color: AppColors.primary),
                     ),
