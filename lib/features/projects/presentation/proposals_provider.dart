@@ -10,35 +10,16 @@ final projectProposalsProvider =
 FutureProvider.family<List<Map<String, dynamic>>, String>(
       (ref, projectId) async {
     try {
-      final proposals = await supabase
+      // Single query: embed the freelancer profile via the FK (no N+1).
+      final rows = await supabase
           .from('proposals')
-          .select('id, cover_letter, bid_amount, status, created_at, freelancer_id')
+          .select(
+              'id, cover_letter, bid_amount, status, created_at, freelancer_id, '
+              'freelancer:profiles!freelancer_id(name, headline, location, skills, experience_years, rating_avg, rating_count)')
           .eq('project_id', projectId)
           .order('created_at', ascending: false);
 
-      final List<Map<String, dynamic>> result = [];
-
-      for (final proposal in (proposals as List)) {
-        final p = Map<String, dynamic>.from(proposal);
-        final freelancerId = p['freelancer_id'] as String?;
-
-        if (freelancerId != null) {
-          try {
-            final profile = await supabase
-                .from('profiles')
-                .select(
-                    'name, headline, location, skills, experience_years, rating_avg, rating_count')
-                .eq('id', freelancerId)
-                .maybeSingle();
-            p['freelancer'] = profile;
-          } catch (_) {
-            p['freelancer'] = null;
-          }
-        }
-        result.add(p);
-      }
-
-      return result;
+      return (rows as List).map((e) => Map<String, dynamic>.from(e)).toList();
     } catch (e) {
       throw Exception('Failed to load proposals: $e');
     }
@@ -97,7 +78,8 @@ Future<String> getOrCreateConversation({
   required String projectId,
   required String freelancerId,
 }) async {
-  final clientId = supabase.auth.currentUser!.id;
+  final clientId = supabase.auth.currentUser?.id;
+  if (clientId == null) throw Exception('Not signed in');
 
   final existing = await supabase
       .from('conversations')

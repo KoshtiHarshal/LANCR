@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/auth_errors.dart';
 import '../../../core/widgets/app_logo.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -46,8 +47,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.error.toString()),
-              backgroundColor: AppColors.primary,
+              content: Text(friendlyAuthError(state.error)),
+              backgroundColor: const Color(0xFFD94F4F),
             ),
           );
         }

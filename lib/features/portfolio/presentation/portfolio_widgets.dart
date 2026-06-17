@@ -4,6 +4,7 @@
 //  - PortfolioGallery     : horizontal scroller of portfolio cards
 //  - showPortfolioDetail()  : bottom sheet with the full item
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -153,24 +154,21 @@ class PortfolioImage extends StatelessWidget {
             color: AppColors.primary, size: 30),
       );
     }
-    return Image.network(
-      url!,
+    return CachedNetworkImage(
+      imageUrl: url!,
       fit: BoxFit.cover,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Container(
-          color: AppColors.primaryLight,
-          child: Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: AppColors.primary),
-            ),
+      placeholder: (context, _) => Container(
+        color: AppColors.primaryLight,
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppColors.primary),
           ),
-        );
-      },
-      errorBuilder: (_, _, _) => Container(
+        ),
+      ),
+      errorWidget: (_, _, _) => Container(
         color: AppColors.primaryLight,
         child: Icon(Icons.broken_image_outlined,
             color: AppColors.primary, size: 28),

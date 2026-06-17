@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../profiles/presentation/profile_provider.dart';
+import '../../notifications/presentation/notifications_page.dart';
 import '../../../core/theme/app_colors.dart';
 import 'freelancer_home_provider.dart';
 
@@ -316,6 +317,10 @@ class _HeroHeaderState extends State<_HeroHeader>
                 ],
               ),
             ),
+
+            // ── Notifications bell ─────────────────────
+            const NotificationBell(color: Colors.white),
+            const SizedBox(width: 4),
 
             // ── RIGHT: Avatar + name (tap or drag to profile) ─
             GestureDetector(

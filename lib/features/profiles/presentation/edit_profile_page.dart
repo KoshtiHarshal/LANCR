@@ -1,8 +1,8 @@
 // lib/features/profiles/presentation/edit_profile_page.dart
 
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -275,7 +275,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                     )
                                   : _avatarUrl != null
                                       ? DecorationImage(
-                                          image: NetworkImage(_avatarUrl!),
+                                          image: CachedNetworkImageProvider(_avatarUrl!),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
@@ -318,6 +318,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               const SizedBox(height: 18),
               TextFormField(
                 controller: _nameCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(100)],
                 decoration: const InputDecoration(
                   labelText: 'Name',
                   prefixIcon: Icon(Icons.person_outline),
@@ -328,6 +329,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _headlineCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(150)],
                 decoration: const InputDecoration(
                   labelText: 'Headline',
                   hintText: 'e.g. Flutter & MERN Stack Developer',
@@ -340,6 +342,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               if (!_isFreelancer) ...[
                 TextFormField(
                   controller: _companyCtrl,
+                  inputFormatters: [LengthLimitingTextInputFormatter(120)],
                   decoration: const InputDecoration(
                     labelText: 'Company',
                     prefixIcon: Icon(Icons.business_outlined),
@@ -349,6 +352,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               ],
               TextFormField(
                 controller: _locationCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(80)],
                 decoration: const InputDecoration(
                   labelText: 'Location',
                   hintText: 'City, Country',
@@ -359,6 +363,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               if (_isFreelancer) ...[
                 TextFormField(
                   controller: _skillsCtrl,
+                  inputFormatters: [LengthLimitingTextInputFormatter(300)],
                   decoration: const InputDecoration(
                     labelText: 'Skills',
                     hintText: 'Flutter, Node.js, MongoDB',
@@ -369,6 +374,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 TextFormField(
                   controller: _yearsCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Years of Experience',
                     prefixIcon: Icon(Icons.bar_chart_outlined),
@@ -379,6 +388,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               TextFormField(
                 controller: _bioCtrl,
                 maxLines: 3,
+                inputFormatters: [LengthLimitingTextInputFormatter(600)],
                 decoration: const InputDecoration(
                   labelText: 'Bio',
                   prefixIcon: Icon(Icons.notes_outlined),
@@ -389,6 +399,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               TextFormField(
                 controller: _portfolioCtrl,
                 keyboardType: TextInputType.url,
+                inputFormatters: [LengthLimitingTextInputFormatter(300)],
                 decoration: InputDecoration(
                   labelText: _isFreelancer ? 'Portfolio URL' : 'Company website',
                   hintText: _isFreelancer ? null : 'https://yourcompany.com',
@@ -401,6 +412,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               TextFormField(
                 controller: _linkedinCtrl,
                 keyboardType: TextInputType.url,
+                inputFormatters: [LengthLimitingTextInputFormatter(300)],
                 decoration: const InputDecoration(
                   labelText: 'LinkedIn URL',
                   prefixIcon: Icon(Icons.person_pin_outlined),

@@ -1,7 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config/router.dart';
+import 'core/notifications/push_service.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -17,6 +19,13 @@ void main() async {
       url: Env.supabaseUrl,
       publishableKey: Env.supabaseAnonKey,
   );
+
+  try {
+    await Firebase.initializeApp();
+    await PushService.init();
+  } catch (e) {
+    debugPrint('Push init skipped: $e');
+  }
 
   runApp(const ProviderScope(child: LancrApp()));
 }

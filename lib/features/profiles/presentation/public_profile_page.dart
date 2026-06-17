@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -317,7 +318,7 @@ class _ProfileHero extends StatelessWidget {
                   image: avatarUrl == null
                       ? null
                       : DecorationImage(
-                    image: NetworkImage(avatarUrl!),
+                    image: CachedNetworkImageProvider(avatarUrl!),
                     fit: BoxFit.cover,
                   ),
                   border: Border.all(color: Colors.white54, width: 2),

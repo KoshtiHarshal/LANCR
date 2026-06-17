@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/presentation/auth_provider.dart';
+import '../../notifications/presentation/notifications_page.dart';
 import '../../profiles/presentation/profile_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
@@ -162,6 +163,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                             ],
                           ),
                         ),
+                        const NotificationBell(color: Colors.white70),
                         IconButton(
                           onPressed: () async {
                             final confirm = await showDialog<bool>(

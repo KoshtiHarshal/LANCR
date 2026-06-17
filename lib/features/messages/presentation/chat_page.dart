@@ -219,7 +219,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
-    final myId = supabase.auth.currentUser!.id;
+    final myId = supabase.auth.currentUser?.id ?? '';
 
     final canComplete = widget.isClient &&
         widget.projectId != null &&

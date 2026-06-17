@@ -1,6 +1,7 @@
 // lib/features/projects/presentation/project_detail_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -246,7 +247,7 @@ class ProjectDetailPage extends ConsumerWidget {
                               backgroundImage: clientProfile?[
                               'avatar_url'] !=
                                   null
-                                  ? NetworkImage(clientProfile![
+                                  ? CachedNetworkImageProvider(clientProfile![
                               'avatar_url'] as String)
                                   : null,
                               child:

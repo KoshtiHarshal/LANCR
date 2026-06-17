@@ -103,7 +103,8 @@ class ReviewsRepository {
     required int rating,
     String? comment,
   }) async {
-    final me = supabase.auth.currentUser!.id;
+    final me = supabase.auth.currentUser?.id;
+    if (me == null) throw Exception('Not signed in');
     final trimmed = comment?.trim();
     await supabase.from('reviews').insert({
       'project_id': projectId,
@@ -123,25 +124,34 @@ class ReviewsRepository {
         .eq('reviewee_id', userId)
         .order('created_at', ascending: false);
 
-    final result = <Map<String, dynamic>>[];
-    for (final row in (rows as List)) {
-      final r = Map<String, dynamic>.from(row);
-      final reviewerId = r['reviewer_id'] as String?;
-      if (reviewerId != null) {
-        try {
-          final profile = await supabase
-              .from('profiles')
-              .select('name, headline, avatar_url')
-              .eq('id', reviewerId)
-              .maybeSingle();
-          r['reviewer'] = profile;
-        } catch (_) {
-          r['reviewer'] = null;
+    final reviews =
+        (rows as List).map((e) => Map<String, dynamic>.from(e)).toList();
+
+    // reviewer_id references auth.users (not profiles), so we can't embed —
+    // batch-fetch all reviewer profiles in one query instead of N.
+    final reviewerIds = reviews
+        .map((r) => r['reviewer_id'] as String?)
+        .whereType<String>()
+        .toSet()
+        .toList();
+
+    if (reviewerIds.isNotEmpty) {
+      try {
+        final profiles = await supabase
+            .from('profiles')
+            .select('id, name, headline, avatar_url')
+            .inFilter('id', reviewerIds);
+        final byId = {
+          for (final p in (profiles as List)) p['id'] as String: p,
+        };
+        for (final r in reviews) {
+          r['reviewer'] = byId[r['reviewer_id']];
         }
+      } catch (_) {
+        // best-effort: reviews still render without reviewer profile
       }
-      result.add(r);
     }
-    return result;
+    return reviews;
   }
 
   /// Average rating + count of reviews received by [userId].

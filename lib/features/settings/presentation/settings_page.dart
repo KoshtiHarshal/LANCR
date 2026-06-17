@@ -3,14 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/notifications/push_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/utils/url_launcher_util.dart';
 import '../../../main.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../messages/presentation/messages_provider.dart';
 import '../../profiles/presentation/profile_provider.dart';
 
 // ── Configuration — replace these with your real values before publishing ──
@@ -19,7 +20,6 @@ const _privacyUrl = 'https://lancr.app/privacy'; // TODO: host real policy
 const _termsUrl = 'https://lancr.app/terms'; // TODO: host real terms
 const _supportEmail = 'support@lancr.app'; // TODO: real support inbox
 const _playStoreId = 'com.example.lancr_app'; // TODO: production package id
-const _kPushPrefKey = 'pref_push_notifications';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -153,9 +153,19 @@ class SettingsPage extends ConsumerWidget {
       await supabase.rpc('delete_current_user');
       // Clear session — auth listener redirects to login.
       await ref.read(authNotifierProvider.notifier).logout();
+      _clearUserCaches(ref);
     } catch (e) {
       if (context.mounted) _snack(context, 'Failed to delete account: $e');
     }
+  }
+
+  /// Drop cached user data so a different account signing in starts clean.
+  void _clearUserCaches(WidgetRef ref) {
+    ref.invalidate(profileProvider);
+    ref.invalidate(currentUserRoleProvider);
+    ref.invalidate(freelancerStatsProvider);
+    ref.invalidate(clientStatsProvider);
+    ref.invalidate(conversationsProvider);
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
@@ -188,6 +198,7 @@ class SettingsPage extends ConsumerWidget {
     );
     if (confirmed == true) {
       await ref.read(authNotifierProvider.notifier).logout();
+      _clearUserCaches(ref);
     }
   }
 
@@ -628,18 +639,19 @@ class _NotificationPrefTileState extends State<_NotificationPrefTile> {
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
+    final enabled = await PushService.isEnabled();
     if (!mounted) return;
     setState(() {
-      _enabled = prefs.getBool(_kPushPrefKey) ?? true;
+      _enabled = enabled;
       _loaded = true;
     });
   }
 
   Future<void> _set(bool value) async {
     setState(() => _enabled = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kPushPrefKey, value);
+    // Persists the pref AND clears/registers the device token so it actually
+    // takes effect server-side.
+    await PushService.setEnabled(value);
   }
 
   @override

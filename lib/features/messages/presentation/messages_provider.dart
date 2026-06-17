@@ -45,7 +45,8 @@ FutureProvider<List<ConversationModel>>((ref) async {
         project:project_id(title)
       ''')
       .or('client_id.eq.$userId,freelancer_id.eq.$userId')
-      .order('last_message_at', ascending: false);
+      .order('last_message_at', ascending: false)
+      .limit(100);
 
   final rows = data as List;
   if (rows.isEmpty) return [];
@@ -92,12 +93,15 @@ FutureProvider<List<ConversationModel>>((ref) async {
 final messagesProvider =
 StreamProvider.family<List<Map<String, dynamic>>, String>(
       (ref, conversationId) {
+    // Cap to the most recent 200 messages (descending), then present ascending.
     return supabase
         .from('messages')
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
-        .order('created_at')
-        .map((data) => List<Map<String, dynamic>>.from(data));
+        .order('created_at', ascending: false)
+        .limit(200)
+        .map((data) =>
+            List<Map<String, dynamic>>.from(data).reversed.toList());
   },
 );
 
@@ -106,7 +110,8 @@ Future<void> sendMessage({
   required String conversationId,
   required String content,
 }) async {
-  final user = supabase.auth.currentUser!;
+  final user = supabase.auth.currentUser;
+  if (user == null) throw Exception('Not signed in');
 
   await supabase.from('messages').insert({
     'conversation_id': conversationId,

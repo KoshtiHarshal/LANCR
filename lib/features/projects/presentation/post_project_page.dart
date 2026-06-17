@@ -1,6 +1,7 @@
 // lib/features/projects/presentation/post_project_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -118,7 +119,8 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
     setState(() => _isLoading = true);
 
     try {
-      final user = supabase.auth.currentUser!;
+      final user = supabase.auth.currentUser;
+      if (user == null) throw Exception('Not signed in');
       final skills = _skillsController.text
           .split(',')
           .map((s) => s.trim())
@@ -297,6 +299,10 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                     child: TextFormField(
                       controller: _budgetMinController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(9),
+                      ],
                       decoration: const InputDecoration(
                         hintText: 'Min',
                         prefixText: '\$ ',
@@ -313,10 +319,23 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                     child: TextFormField(
                       controller: _budgetMaxController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(9),
+                      ],
                       decoration: const InputDecoration(
                         hintText: 'Max',
                         prefixText: '\$ ',
                       ),
+                      validator: (v) {
+                        final max = int.tryParse(v?.trim() ?? '');
+                        final min =
+                            int.tryParse(_budgetMinController.text.trim());
+                        if (max != null && min != null && max < min) {
+                          return 'Max must be ≥ min';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                 ],

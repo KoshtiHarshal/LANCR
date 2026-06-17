@@ -17,7 +17,8 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
           'proposals(count)',
     )
         .eq('status', 'open')
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(100);
     return List<Map<String, dynamic>>.from(data as List);
   } catch (e) {
     throw Exception('Failed to load projects: $e');

@@ -18,7 +18,8 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
         .select(
         'id, title, description, status, budget_min, budget_max, created_at')
         .eq('client_id', userId)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(100);
     return List<Map<String, dynamic>>.from(data as List);
   } catch (e) {
     throw Exception('Failed to load projects: $e');

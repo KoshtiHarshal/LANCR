@@ -21,6 +21,7 @@ import '../../features/projects/presentation/client_projects_page.dart';
 import '../../features/projects/presentation/project_completion_page.dart';
 import '../../features/messages/presentation/conversations_page.dart';
 import '../../features/messages/presentation/chat_page.dart';
+import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/portfolio/presentation/manage_portfolio_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../presentation/main_shell_page.dart';
@@ -250,6 +251,16 @@ final routerProvider = Provider((ref) {
           child: PublicProfilePage(
             userId: state.pathParameters['id']!,
           ),
+        ),
+      ),
+
+      // ── Notifications — SLIDE UP transition ────────────────
+      GoRoute(
+        path: '/notifications',
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: const NotificationsPage(),
         ),
       ),
 

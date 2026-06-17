@@ -10,35 +10,15 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
   if (userId == null) return [];
 
   try {
-    final proposals = await supabase
+    // Single query: embed the project via the FK (no N+1).
+    final rows = await supabase
         .from('proposals')
-        .select('id, bid_amount, status, cover_letter, created_at, project_id')
+        .select('id, bid_amount, status, cover_letter, created_at, project_id, '
+            'project:projects!project_id(id, title, description, budget_min, budget_max, status)')
         .eq('freelancer_id', userId)
         .order('created_at', ascending: false);
 
-    final List<Map<String, dynamic>> result = [];
-
-    for (final proposal in (proposals as List)) {
-      final p = Map<String, dynamic>.from(proposal);
-      final projectId = p['project_id'] as String?;
-
-      // Fetch project details separately
-      if (projectId != null) {
-        try {
-          final project = await supabase
-              .from('projects')
-              .select('id, title, description, budget_min, budget_max, status')
-              .eq('id', projectId)
-              .maybeSingle();
-          p['project'] = project;
-        } catch (_) {
-          p['project'] = null;
-        }
-      }
-      result.add(p);
-    }
-
-    return result;
+    return (rows as List).map((e) => Map<String, dynamic>.from(e)).toList();
   } catch (e) {
     throw Exception('Failed to load proposals: $e');
   }

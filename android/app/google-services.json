@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "141340688606",
+    "project_id": "lancr-h0195",
+    "storage_bucket": "lancr-h0195.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:141340688606:android:a28f17ae9ea813ade5824f",
+        "android_client_info": {
+          "package_name": "com.example.lancr_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2x8bZ7WgVb3QTfehaZpuEqT0IJzhs7cg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

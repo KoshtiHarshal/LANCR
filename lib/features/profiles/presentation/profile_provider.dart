@@ -65,10 +65,10 @@ FutureProvider.family<int, String>((ref, freelancerId) async {
 final freelancerStatsProvider =
 FutureProvider.family<Map<String, int>, String>((ref, freelancerId) async {
   try {
-    // Total proposals sent
+    // Single query: embed each proposal's project status (no N+1).
     final proposals = await supabase
         .from('proposals')
-        .select('id, status, project_id')
+        .select('status, project:projects!project_id(status)')
         .eq('freelancer_id', freelancerId);
 
     final list = proposals as List;
@@ -76,22 +76,11 @@ FutureProvider.family<Map<String, int>, String>((ref, freelancerId) async {
     final acceptedProposals =
         list.where((p) => p['status'] == 'accepted').length;
 
-    // Completed projects: proposals accepted + project status = completed
-    int completedProjects = 0;
-    for (final p in list) {
-      if (p['status'] == 'accepted') {
-        try {
-          final proj = await supabase
-              .from('projects')
-              .select('status')
-              .eq('id', p['project_id'])
-              .maybeSingle();
-          if (proj != null && proj['status'] == 'completed') {
-            completedProjects++;
-          }
-        } catch (_) {}
-      }
-    }
+    // Completed projects: accepted proposals whose project is completed.
+    final completedProjects = list.where((p) {
+      final project = p['project'] as Map<String, dynamic>?;
+      return p['status'] == 'accepted' && project?['status'] == 'completed';
+    }).length;
 
     return {
       'totalProposals': totalProposals,

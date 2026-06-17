@@ -8,6 +8,7 @@
 //  - showReviewDialog() : star picker + optional comment + confirm
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -216,7 +217,7 @@ class _ReviewTile extends StatelessWidget {
                 radius: 18,
                 backgroundColor: AppColors.primaryLight,
                 backgroundImage:
-                avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
                 child: avatarUrl == null
                     ? Text(
                   initial,
