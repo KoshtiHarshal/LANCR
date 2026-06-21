@@ -6,6 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _kThemeKey = 'pref_theme_mode';
 
+/// Bumped whenever the effective theme changes. The router uses this as its
+/// `refreshListenable` to rebuild every on-screen page so they re-read the
+/// (static) AppColors tokens immediately on a theme switch.
+final themeRefreshNotifier = ValueNotifier<int>(0);
+
 /// App theme preference (system / light / dark), persisted locally.
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override

@@ -6,6 +6,7 @@ import 'auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/auth_errors.dart';
 import '../../../core/widgets/app_logo.dart';
+import '../../../main.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -40,7 +41,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       final state = ref.read(authNotifierProvider);
       if (state.hasValue && state.value != null) {
-        if (mounted) context.go('/home');
+        // Route through splash so onboarding (role selection) is gated.
+        if (mounted) context.go('/');
       } else if (state.hasError) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -53,6 +55,29 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Enter your email above, then tap Forgot password.')),
+      );
+      return;
+    }
+    try {
+      await supabase.auth.resetPasswordForEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset link sent to $email')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(friendlyAuthError(e))),
+      );
     }
   }
 
@@ -125,7 +150,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   (v == null || v.isEmpty) ? 'Enter your password' : null,
                 ),
 
-                const SizedBox(height: 32),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _forgotPassword,
+                    child: Text('Forgot password?',
+                        style: TextStyle(color: AppColors.primary)),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
 
                 // Sign in button
                 SizedBox(

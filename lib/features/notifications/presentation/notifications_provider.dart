@@ -1,43 +1,29 @@
 // lib/features/notifications/presentation/notifications_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../main.dart';
+import '../../auth/presentation/auth_provider.dart';
 
-/// The current user's notifications (most recent 50).
+/// The current user's notifications (most recent 50), live.
 ///
-/// Data is fetched over REST (always reliable). A Realtime channel is opened
-/// purely as a *refresh trigger* — when this user's notifications change we
-/// re-fetch. If Realtime ever fails, the list still loads from REST and is
-/// refreshed by the explicit invalidations after mark-read actions.
+/// Uses Supabase `.stream()` — the same realtime pattern as the messages
+/// feature — so new rows and read-state changes arrive instantly without a
+/// manual channel or app restart. The stream emits the current snapshot on
+/// first listen, then pushes every subsequent change.
 final notificationsProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return const [];
+    StreamProvider<List<Map<String, dynamic>>>((ref) {
+  // Watch auth so the stream (re)subscribes once the session is available and
+  // when the signed-in user changes.
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return Stream.value(const []);
 
-  final channel = supabase.channel('notif:$userId');
-  channel
-      .onPostgresChanges(
-        event: PostgresChangeEvent.all,
-        schema: 'public',
-        table: 'notifications',
-        filter: PostgresChangeFilter(
-          type: PostgresChangeFilterType.eq,
-          column: 'user_id',
-          value: userId,
-        ),
-        callback: (_) => ref.invalidateSelf(),
-      )
-      .subscribe();
-  ref.onDispose(() => supabase.removeChannel(channel));
-
-  final rows = await supabase
+  return supabase
       .from('notifications')
-      .select('id, type, title, body, data, read, created_at')
+      .stream(primaryKey: ['id'])
       .eq('user_id', userId)
       .order('created_at', ascending: false)
-      .limit(50);
-  return (rows as List).map((e) => Map<String, dynamic>.from(e)).toList();
+      .limit(50)
+      .map((rows) => rows.map((e) => Map<String, dynamic>.from(e)).toList());
 });
 
 /// Count of unread notifications (drives the bell dot).

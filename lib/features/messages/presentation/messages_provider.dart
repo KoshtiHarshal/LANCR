@@ -124,3 +124,45 @@ Future<void> sendMessage({
     'last_message_at': DateTime.now().toIso8601String(),
   }).eq('id', conversationId);
 }
+
+// ── Get an existing conversation or (re)create it ───────────
+// Used to reconnect a chat that was deleted. Works from either side.
+Future<String> openConversation({
+  required String projectId,
+  required String clientId,
+  required String freelancerId,
+}) async {
+  final existing = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('client_id', clientId)
+      .eq('freelancer_id', freelancerId)
+      .maybeSingle();
+  if (existing != null) return existing['id'] as String;
+
+  final created = await supabase
+      .from('conversations')
+      .insert({
+        'project_id': projectId,
+        'client_id': clientId,
+        'freelancer_id': freelancerId,
+      })
+      .select('id')
+      .single();
+  return created['id'] as String;
+}
+
+// ── Clear all messages in a conversation (keeps the conversation) ──
+Future<void> clearChat(String conversationId) async {
+  await supabase.from('messages').delete().eq('conversation_id', conversationId);
+  await supabase.from('conversations').update({
+    'last_message': null,
+  }).eq('id', conversationId);
+}
+
+// ── Delete a conversation entirely (messages first, then the row) ──
+Future<void> deleteConversation(String conversationId) async {
+  await supabase.from('messages').delete().eq('conversation_id', conversationId);
+  await supabase.from('conversations').delete().eq('id', conversationId);
+}

@@ -24,8 +24,10 @@ import '../../features/messages/presentation/chat_page.dart';
 import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/portfolio/presentation/manage_portfolio_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
+import '../../features/legal/presentation/legal_page.dart';
 import '../presentation/main_shell_page.dart';
 import '../theme/app_colors.dart';
+import '../theme/theme_provider.dart';
 import '../widgets/app_logo.dart';
 import '../../../main.dart';
 
@@ -39,7 +41,7 @@ CustomTransitionPage<void> _slideUpPage({
 }) {
   return CustomTransitionPage<void>(
     key: state.pageKey,
-    child: child,
+    child: _ThemeAware(child: child),
     transitionDuration: const Duration(milliseconds: 400),
     reverseTransitionDuration: const Duration(milliseconds: 350),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -62,6 +64,32 @@ CustomTransitionPage<void> _slideUpPage({
       );
     },
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Theme-aware page wrapper.
+//
+// The app's colour tokens are static (AppColors), and pages are built as
+// `const`, so a theme switch can't repaint pages already in the navigator
+// stack (const widgets are canonicalised and never rebuild from above). This
+// wrapper listens to [themeRefreshNotifier] (bumped on every theme change) and
+// flips a KeyedSubtree key, which forces the page to re-mount with a fresh
+// element — repainting it with the new colours while keeping the navigation
+// stack intact. Wrap every routed page in this.
+class _ThemeAware extends StatelessWidget {
+  final Widget child;
+  const _ThemeAware({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: themeRefreshNotifier,
+      builder: (context, value, _) => KeyedSubtree(
+        key: ValueKey(value),
+        child: child,
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -133,6 +161,19 @@ class SplashPage extends ConsumerWidget {
 final routerProvider = Provider((ref) {
   final auth = ref.watch(authProvider);
 
+  // On a theme change, update the colour mode FIRST (so the refreshed pages read
+  // the new value — otherwise there's a race where pages rebuild with the old
+  // colours and never refresh again), THEN bump the notifier to rebuild every
+  // on-screen page. GoRouter keeps the current location across the refresh.
+  ref.listen(themeModeProvider, (_, mode) {
+    final platformDark =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark;
+    AppColors.isDark =
+        mode == ThemeMode.dark || (mode == ThemeMode.system && platformDark);
+    themeRefreshNotifier.value++;
+  });
+
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
@@ -173,56 +214,70 @@ final routerProvider = Provider((ref) {
       // ── Main shell ─────────────────────────────────────────
       GoRoute(
         path: '/home',
-        builder: (context, state) => const MainShellPage(),
+        builder: (context, state) => _ThemeAware(child: const MainShellPage()),
       ),
 
       // ── Client ─────────────────────────────────────────────
       GoRoute(
         path: '/client/home',
-        builder: (context, state) => const ClientHomePage(),
+        builder: (context, state) =>
+            _ThemeAware(child: const ClientHomePage()),
       ),
 
       // ── Projects ───────────────────────────────────────────
       GoRoute(
         path: '/projects/post',
-        builder: (context, state) => const PostProjectPage(),
+        builder: (context, state) =>
+            _ThemeAware(child: const PostProjectPage()),
       ),
       GoRoute(
         path: '/projects/:id/edit',
-        builder: (context, state) => PostProjectPage(
-          projectId: state.pathParameters['id'],
+        builder: (context, state) => _ThemeAware(
+          child: PostProjectPage(
+            projectId: state.pathParameters['id'],
+          ),
         ),
       ),
       GoRoute(
         path: '/projects/browse',
-        builder: (context, state) => const BrowseProjectsPage(),
+        builder: (context, state) =>
+            _ThemeAware(child: const BrowseProjectsPage()),
       ),
       GoRoute(
         path: '/client/projects',
-        builder: (context, state) => const ClientProjectsPage(),
+        builder: (context, state) =>
+            _ThemeAware(child: const ClientProjectsPage()),
       ),
       GoRoute(
         path: '/projects/:id',
-        builder: (context, state) => ProjectDetailPage(
-          projectId: state.pathParameters['id']!,
+        builder: (context, state) => _ThemeAware(
+          child: ProjectDetailPage(
+            projectId: state.pathParameters['id']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/projects/:id/submit-proposal',
-        builder: (context, state) => SubmitProposalPage(
-          projectId: state.pathParameters['id']!,
+        builder: (context, state) => _ThemeAware(
+          child: SubmitProposalPage(
+            projectId: state.pathParameters['id']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/projects/:id/proposals',
-        builder: (context, state) => ViewProposalsPage(
-          projectId: state.pathParameters['id']!,
+        builder: (context, state) => _ThemeAware(
+          child: ViewProposalsPage(
+            projectId: state.pathParameters['id']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/projects/:id/completion',
-        builder: (context, state) => ProjectCompletionPage(
-          projectId: state.pathParameters['id']!,
+        builder: (context, state) => _ThemeAware(
+          child: ProjectCompletionPage(
+            projectId: state.pathParameters['id']!,
+          ),
         ),
       ),
 
@@ -274,6 +329,30 @@ final routerProvider = Provider((ref) {
         ),
       ),
 
+      // ── Legal documents (in-app) — SLIDE UP transition ────
+      GoRoute(
+        path: '/legal/privacy',
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: const LegalPage(
+            title: 'Privacy Policy',
+            assetPath: 'docs/privacy_policy.md',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/legal/terms',
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: const LegalPage(
+            title: 'Terms of Service',
+            assetPath: 'docs/terms_of_service.md',
+          ),
+        ),
+      ),
+
       // ── Portfolio — SLIDE UP transition ────────────────────
       GoRoute(
         path: '/portfolio/manage',
@@ -287,19 +366,23 @@ final routerProvider = Provider((ref) {
       // ── Messaging ──────────────────────────────────────────
       GoRoute(
         path: '/messages',
-        builder: (context, state) => const ConversationsPage(),
+        builder: (context, state) =>
+            _ThemeAware(child: const ConversationsPage()),
       ),
       GoRoute(
         path: '/messages/:id',
         builder: (context, state) {
           final extra = state.extra as Map? ?? {};
-          return ChatPage(
-            conversationId: state.pathParameters['id']!,
-            otherPersonName: extra['otherPersonName'] as String? ?? '',
-            projectTitle: extra['projectTitle'] as String? ?? '',
-            projectId: extra['projectId'] as String?,
-            proposalId: extra['proposalId'] as String?,
-            isClient: extra['isClient'] as bool? ?? false,
+          return _ThemeAware(
+            child: ChatPage(
+              conversationId: state.pathParameters['id']!,
+              otherPersonName: extra['otherPersonName'] as String? ?? '',
+              otherPersonId: extra['otherPersonId'] as String?,
+              projectTitle: extra['projectTitle'] as String? ?? '',
+              projectId: extra['projectId'] as String?,
+              proposalId: extra['proposalId'] as String?,
+              isClient: extra['isClient'] as bool? ?? false,
+            ),
           );
         },
       ),

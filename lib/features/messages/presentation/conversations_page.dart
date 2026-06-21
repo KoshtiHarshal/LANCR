@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/notifications/push_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'messages_provider.dart';
 
@@ -18,6 +19,92 @@ class ConversationsPage extends ConsumerWidget {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  void _showConvMenu(
+      BuildContext context, WidgetRef ref, ConversationModel conv) {
+    final muted = PushService.isMuted(conv.id);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.person_outline_rounded,
+                  color: AppColors.primary),
+              title: Text('View profile',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(sheet);
+                context.push('/profile/${conv.otherPersonId}');
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                  muted
+                      ? Icons.notifications_active_outlined
+                      : Icons.notifications_off_outlined,
+                  color: AppColors.primary),
+              title: Text(muted ? 'Unmute notifications' : 'Mute notifications',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () async {
+                Navigator.pop(sheet);
+                await PushService.setMuted(conv.id, !muted);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded,
+                  color: Color(0xFFD94F4F)),
+              title: const Text('Delete chat',
+                  style: TextStyle(color: Color(0xFFD94F4F))),
+              onTap: () async {
+                Navigator.pop(sheet);
+                final ok = await _confirmDelete(context);
+                if (!ok) return;
+                try {
+                  await deleteConversation(conv.id);
+                  ref.invalidate(conversationsProvider);
+                } catch (_) {}
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('Delete chat?',
+                style: TextStyle(
+                    fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+            content: Text(
+                'This permanently deletes the conversation and all its messages for both of you.',
+                style: TextStyle(color: AppColors.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel',
+                    style: TextStyle(color: AppColors.textSecondary)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD94F4F)),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
@@ -196,12 +283,14 @@ class ConversationsPage extends ConsumerWidget {
                     '/messages/${conv.id}',
                     extra: {
                       'otherPersonName': conv.otherPersonName,
+                      'otherPersonId': conv.otherPersonId,
                       'projectTitle': conv.projectTitle,
                       'projectId': conv.projectId,
                       'proposalId': conv.proposalId,
                       'isClient': conv.isClient,
                     },
                   ),
+                  onLongPress: () => _showConvMenu(context, ref, conv),
                 );
               },
             ),

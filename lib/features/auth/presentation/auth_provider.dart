@@ -48,8 +48,8 @@ class AuthNotifier extends AsyncNotifier<User?> {
     }
   }
 
-  Future<void> register(String email, String password, String role) async {
-    debugPrint('AUTH: register called for $email / $role');
+  Future<void> register(String email, String password) async {
+    debugPrint('AUTH: register called for $email');
     state = const AsyncLoading();
     try {
       final res = await supabase.auth.signUp(
@@ -59,10 +59,10 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
       final user = res.user;
       if (user != null) {
+        // Role is chosen on the next screen (role selection).
         await supabase.from('profiles').insert({
           'id': user.id,
           'email': email,
-          'role': role,
           'profile_completed': false,
         });
         debugPrint('AUTH: register success for ${user.email}');

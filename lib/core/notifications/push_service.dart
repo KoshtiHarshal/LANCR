@@ -30,6 +30,27 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
 }
 
 class PushService {
+  /// The conversation currently open on screen (set by ChatPage). Foreground
+  /// notifications for this conversation are suppressed so chatting isn't
+  /// interrupted.
+  static String? activeConversationId;
+
+  static const _mutedKey = 'muted_conversations';
+  static final Set<String> _mutedConversations = {};
+
+  static bool isMuted(String conversationId) =>
+      _mutedConversations.contains(conversationId);
+
+  static Future<void> setMuted(String conversationId, bool muted) async {
+    if (muted) {
+      _mutedConversations.add(conversationId);
+    } else {
+      _mutedConversations.remove(conversationId);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_mutedKey, _mutedConversations.toList());
+  }
+
   static Future<bool> isEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(pushPrefKey) ?? true;
@@ -65,10 +86,19 @@ class PushService {
 
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 
-    // Foreground messages → show a local notification.
+    final prefs = await SharedPreferences.getInstance();
+    _mutedConversations.addAll(prefs.getStringList(_mutedKey) ?? const []);
+
+    // Foreground messages → show a local notification (unless the user is in
+    // that chat or has muted it).
     FirebaseMessaging.onMessage.listen((message) {
       final n = message.notification;
       if (n == null) return;
+      final convId = message.data['conversation_id'] as String?;
+      if (convId != null &&
+          (convId == activeConversationId || isMuted(convId))) {
+        return;
+      }
       _local.show(
         n.hashCode,
         n.title,

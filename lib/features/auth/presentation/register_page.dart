@@ -18,7 +18,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  String _role = 'freelancer';
   bool _obscure = true;
   bool _isLoading = false;
 
@@ -37,7 +36,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       await ref.read(authNotifierProvider.notifier).register(
         _emailCtrl.text.trim(),
         _passwordCtrl.text.trim(),
-        _role,
       );
 
       final state = ref.read(authNotifierProvider);
@@ -126,38 +124,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   validator: (v) =>
                   (v == null || v.length < 6) ? 'Min 6 characters' : null,
                 ),
-                const SizedBox(height: 16),
-
-                // Role selector — card style
-                Text(
-                  'I want to...',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _RoleCard(
-                      label: 'Freelancer',
-                      icon: Icons.work_outline,
-                      subtitle: 'Find & complete projects',
-                      selected: _role == 'freelancer',
-                      onTap: () => setState(() => _role = 'freelancer'),
-                    ),
-                    const SizedBox(width: 12),
-                    _RoleCard(
-                      label: 'Client',
-                      icon: Icons.business_center_outlined,
-                      subtitle: 'Post & hire for projects',
-                      selected: _role == 'client',
-                      onTap: () => setState(() => _role = 'client'),
-                    ),
-                  ],
-                ),
-
                 const SizedBox(height: 32),
 
                 // Sign up button
@@ -189,73 +155,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Role selector card widget ──────────────────────────
-class _RoleCard extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RoleCard({
-    required this.label,
-    required this.subtitle,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primaryLight : AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? AppColors.primary : AppColors.shadow,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                icon,
-                color: selected ? AppColors.primary : AppColors.textSecondary,
-                size: 24,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: selected
-                      ? AppColors.primary
-                      : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
           ),
         ),
       ),

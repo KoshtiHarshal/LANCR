@@ -5,13 +5,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../main.dart';
+import '../../messages/presentation/messages_provider.dart';
 import 'my_proposals_provider.dart';
 
-class MyProposalsPage extends ConsumerWidget {
+class MyProposalsPage extends ConsumerStatefulWidget {
   const MyProposalsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyProposalsPage> createState() => _MyProposalsPageState();
+}
+
+class _MyProposalsPageState extends ConsumerState<MyProposalsPage> {
+  // 'all' | 'pending' | 'accepted' | 'completed'
+  String _tab = 'all';
+
+  @override
+  Widget build(BuildContext context) {
     final proposalsAsync = ref.watch(myProposalsProvider);
 
     return Scaffold(
@@ -44,8 +54,29 @@ class MyProposalsPage extends ConsumerWidget {
             ],
           ),
         ),
-        data: (proposals) {
-          if (proposals.isEmpty) {
+        data: (allProposals) {
+          // Hide archived proposals from every tab (stats still count them),
+          // and order active (accepted) + pending first.
+          int rank(String s) => switch (s) {
+                'accepted' => 0,
+                'pending' => 1,
+                'completed' => 2,
+                'rejected' => 3,
+                _ => 4,
+              };
+          final visible = allProposals
+              .where((p) => p['archived'] != true)
+              .toList()
+            ..sort((a, b) {
+              final r = rank(a['status'] ?? 'pending')
+                  .compareTo(rank(b['status'] ?? 'pending'));
+              if (r != 0) return r;
+              final da = a['created_at'] as String? ?? '';
+              final db = b['created_at'] as String? ?? '';
+              return db.compareTo(da);
+            });
+
+          if (visible.isEmpty) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -80,15 +111,23 @@ class MyProposalsPage extends ConsumerWidget {
             );
           }
 
+          // Counts come from the stats provider (counts archived too) so the
+          // numbers stay stable even after a completed proposal is removed.
           final stats = ref.watch(myProposalStatsProvider);
+
+          final filtered = _tab == 'all'
+              ? visible
+              : visible
+                  .where((p) => (p['status'] ?? 'pending') == _tab)
+                  .toList();
 
           return Column(
             children: [
-              // ── Stats Strip ──────────────────────────────
+              // ── Stats Strip (tappable tabs) ──────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                 padding: const EdgeInsets.symmetric(
-                    vertical: 14, horizontal: 8),
+                    vertical: 10, horizontal: 6),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(14),
@@ -97,36 +136,55 @@ class MyProposalsPage extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _StatPill(
-                        label: 'Total',
-                        value: '${stats['total']}',
-                        color: AppColors.primary),
-                    _StatPill(
-                        label: 'Pending',
-                        value: '${stats['pending']}',
-                        color: const Color(0xFFF59E0B)),
-                    _StatPill(
-                        label: 'Active',
-                        value: '${stats['accepted']}',
-                        color: const Color(0xFF1565C0)),
-                    _StatPill(
-                        label: 'Done',
-                        value: '${stats['completed']}',
-                        color: const Color(0xFF2E7D32)),
+                    _StatTab(
+                      label: 'Total',
+                      value: '${stats['total']}',
+                      color: AppColors.primary,
+                      selected: _tab == 'all',
+                      onTap: () => setState(() => _tab = 'all'),
+                    ),
+                    _StatTab(
+                      label: 'Pending',
+                      value: '${stats['pending']}',
+                      color: const Color(0xFFF59E0B),
+                      selected: _tab == 'pending',
+                      onTap: () => setState(() => _tab = 'pending'),
+                    ),
+                    _StatTab(
+                      label: 'Active',
+                      value: '${stats['accepted']}',
+                      color: const Color(0xFF1565C0),
+                      selected: _tab == 'accepted',
+                      onTap: () => setState(() => _tab = 'accepted'),
+                    ),
+                    _StatTab(
+                      label: 'Done',
+                      value: '${stats['completed']}',
+                      color: const Color(0xFF2E7D32),
+                      selected: _tab == 'completed',
+                      onTap: () => setState(() => _tab = 'completed'),
+                    ),
                   ],
                 ),
               ),
 
               // ── Proposal List ────────────────────────────
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: proposals.length,
-                  separatorBuilder: (_, _) =>
-                  const SizedBox(height: 12),
-                  itemBuilder: (context, index) =>
-                      _ProposalCard(proposal: proposals[index]),
-                ),
+                child: filtered.isEmpty
+                    ? _EmptyTab(tab: _tab)
+                    : RefreshIndicator(
+                        color: AppColors.primary,
+                        onRefresh: () async =>
+                            ref.invalidate(myProposalsProvider),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) =>
+                              _ProposalCard(proposal: filtered[index]),
+                        ),
+                      ),
               ),
             ],
           );
@@ -137,33 +195,101 @@ class MyProposalsPage extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Stat Pill
+// Empty state for a filtered tab
 // ─────────────────────────────────────────────────────────────
-class _StatPill extends StatelessWidget {
+class _EmptyTab extends StatelessWidget {
+  final String tab;
+  const _EmptyTab({required this.tab});
+
+  String get _label {
+    switch (tab) {
+      case 'pending':
+        return 'pending';
+      case 'accepted':
+        return 'active';
+      case 'completed':
+        return 'completed';
+      default:
+        return '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.inbox_outlined,
+              size: 56,
+              color: AppColors.textSecondary.withValues(alpha: 0.4)),
+          const SizedBox(height: 12),
+          Text(
+            'No $_label proposals',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Stat Tab — tappable filter pill
+// ─────────────────────────────────────────────────────────────
+class _StatTab extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
+  final bool selected;
+  final VoidCallback onTap;
 
-  const _StatPill({
+  const _StatTab({
     required this.label,
     required this.value,
     required this.color,
+    required this.selected,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-              fontSize: 20, fontWeight: FontWeight.w800, color: color),
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? color.withValues(alpha: 0.4) : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.w800, color: color),
+              ),
+              const SizedBox(height: 2),
+              Text(label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: selected ? color : AppColors.textSecondary,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  )),
+            ],
+          ),
         ),
-        const SizedBox(height: 2),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11, color: AppColors.textSecondary)),
-      ],
+      ),
     );
   }
 }
@@ -171,16 +297,74 @@ class _StatPill extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // Proposal Card
 // ─────────────────────────────────────────────────────────────
-class _ProposalCard extends StatefulWidget {
+class _ProposalCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> proposal;
   const _ProposalCard({required this.proposal});
 
   @override
-  State<_ProposalCard> createState() => _ProposalCardState();
+  ConsumerState<_ProposalCard> createState() => _ProposalCardState();
 }
 
-class _ProposalCardState extends State<_ProposalCard> {
+class _ProposalCardState extends ConsumerState<_ProposalCard> {
   bool _expanded = false;
+
+  Future<void> _confirmRemove() async {
+    final id = widget.proposal['id'] as String?;
+    if (id == null) return;
+    final title =
+        (widget.proposal['project'] as Map?)?['title'] as String? ?? 'this proposal';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Remove proposal?',
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        content: Text(
+          'This removes "$title" from your My Proposals list. '
+          'Your stats are not affected.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD94F4F)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      await archiveProposal(proposalId: id);
+      ref.invalidate(myProposalsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Removed from your proposals.'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove: $e')),
+        );
+      }
+    }
+  }
 
   Color get _statusColor {
     switch (widget.proposal['status']) {
@@ -209,6 +393,37 @@ class _ProposalCardState extends State<_ProposalCard> {
     }
   }
 
+  Future<void> _openChat() async {
+    final project = widget.proposal['project'] as Map?;
+    final clientId = project?['client_id'] as String?;
+    final clientName = (project?['client'] as Map?)?['name'] as String? ?? 'Client';
+    final projectId = widget.proposal['project_id'] as String?;
+    final me = supabase.auth.currentUser?.id;
+    if (clientId == null || projectId == null || me == null) return;
+    try {
+      final convId = await openConversation(
+        projectId: projectId,
+        clientId: clientId,
+        freelancerId: me,
+      );
+      if (!mounted) return;
+      context.push('/messages/$convId', extra: {
+        'otherPersonName': clientName,
+        'otherPersonId': clientId,
+        'projectTitle': project?['title'] ?? '',
+        'projectId': projectId,
+        'proposalId': widget.proposal['id'],
+        'isClient': false,
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open chat: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final project = widget.proposal['project'] as Map?;
@@ -218,8 +433,14 @@ class _ProposalCardState extends State<_ProposalCard> {
     final coverLetter = widget.proposal['cover_letter'] ?? '';
     final status = widget.proposal['status'] ?? 'pending';
     final projectId = widget.proposal['project_id'] as String?;
+    // Only active (accepted) proposals get the quick-chat button.
+    final canChat = status == 'accepted';
 
-    return Container(
+    return Stack(
+      children: [
+        GestureDetector(
+          onLongPress: _confirmRemove,
+          child: Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -368,6 +589,28 @@ class _ProposalCardState extends State<_ProposalCard> {
           ),
         ],
       ),
+          ),
+        ),
+        if (canChat)
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Material(
+              color: AppColors.primary,
+              shape: const CircleBorder(),
+              elevation: 2,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _openChat,
+                child: const Padding(
+                  padding: EdgeInsets.all(9),
+                  child: Icon(Icons.chat_bubble_outline_rounded,
+                      color: Colors.white, size: 18),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

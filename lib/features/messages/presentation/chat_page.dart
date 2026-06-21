@@ -2,26 +2,29 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/notifications/push_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
-import '../../projects/presentation/proposals_provider.dart';
-import '../../reviews/data/reviews_repository.dart';
-import '../../reviews/presentation/reviews_provider.dart';
 import '../../reviews/presentation/review_widgets.dart';
+import '../../reviews/presentation/reviews_provider.dart';
 import 'messages_provider.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   final String conversationId;
   final String otherPersonName;
+  final String? otherPersonId;
   final String projectTitle;
-  final String? projectId;    // ← NEW
-  final String? proposalId;   // ← NEW
-  final bool isClient;        // ← NEW
+  final String? projectId;
+  final String? proposalId;
+  final bool isClient;
 
   const ChatPage({
     super.key,
     required this.conversationId,
     required this.otherPersonName,
+    this.otherPersonId,
     required this.projectTitle,
     this.projectId,
     this.proposalId,
@@ -32,17 +35,112 @@ class ChatPage extends ConsumerStatefulWidget {
   ConsumerState<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends ConsumerState<ChatPage> {
+class _ChatPageState extends ConsumerState<ChatPage>
+    with WidgetsBindingObserver {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   bool _sending = false;
-  bool _completing = false;
+  RealtimeChannel? _projectChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    // Suppress push/local notifications for the chat we're viewing.
+    PushService.activeConversationId = widget.conversationId;
+
+    // Make the "Leave a review" card appear live: when the client completes
+    // the project, the freelancer (sitting in this chat) sees the project row
+    // update via realtime, so we refresh review eligibility immediately.
+    final projectId = widget.projectId;
+    if (projectId != null) {
+      WidgetsBinding.instance.addObserver(this);
+      _projectChannel = supabase
+          .channel('chat_project_$projectId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'projects',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'id',
+              value: projectId,
+            ),
+            callback: (_) {
+              if (mounted) {
+                ref.invalidate(reviewEligibilityProvider(projectId));
+              }
+            },
+          )
+          .subscribe();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cheap fallback in case a realtime event was missed while backgrounded.
+    final projectId = widget.projectId;
+    if (state == AppLifecycleState.resumed && projectId != null) {
+      ref.invalidate(reviewEligibilityProvider(projectId));
+    }
+  }
 
   @override
   void dispose() {
+    if (PushService.activeConversationId == widget.conversationId) {
+      PushService.activeConversationId = null;
+    }
+    if (_projectChannel != null) {
+      WidgetsBinding.instance.removeObserver(this);
+      supabase.removeChannel(_projectChannel!);
+    }
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openProfile() async {
+    final id = widget.otherPersonId;
+    if (id != null) context.push('/profile/$id');
+  }
+
+  Future<void> _clearChat() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Clear chat?',
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        content: Text('This permanently deletes all messages in this chat.',
+            style: TextStyle(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD94F4F)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await clearChat(widget.conversationId);
+      // Force the stream to re-fetch so the cleared chat updates immediately.
+      ref.invalidate(messagesProvider(widget.conversationId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to clear chat: $e')),
+        );
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -78,195 +176,75 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
-  // ── Mark project as complete ─────────────────────────────
-  Future<void> _markComplete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Mark as Complete?',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-        ),
-        content: Text(
-          'This will mark the project as completed. This action cannot be undone.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Complete',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() => _completing = true);
-    try {
-      await completeProject(
-        projectId: widget.projectId!,
-        proposalId: widget.proposalId!,
-      );
-      if (mounted) {
-        ref.invalidate(reviewEligibilityProvider(widget.projectId!));
-        await _showCompletionSuccess();
-        if (mounted) await _maybePromptReview();
-        if (mounted) Navigator.pop(context); // go back from chat
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to complete: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _completing = false);
-    }
-  }
-
-  /// After completion, offer the client the chance to review the freelancer.
-  Future<void> _maybePromptReview() async {
-    final projectId = widget.projectId;
-    if (projectId == null) return;
-
-    final reviewCtx = await reviewsRepository.getReviewContext(projectId);
-    if (!mounted) return;
-
-    final canReview = reviewCtx['canReview'] as bool? ?? false;
-    final revieweeId = reviewCtx['revieweeId'] as String?;
-    final revieweeName = reviewCtx['revieweeName'] as String? ?? 'this user';
-    if (!canReview || revieweeId == null) return;
-
-    final submitted = await showReviewDialog(
-      context,
-      projectId: projectId,
-      revieweeId: revieweeId,
-      revieweeName: revieweeName,
-    );
-    if (submitted == true && mounted) {
-      ref.invalidate(reviewEligibilityProvider(projectId));
-      ref.invalidate(userReviewsProvider(revieweeId));
-      ref.invalidate(userRatingStatsProvider(revieweeId));
-    }
-  }
-
-  Future<void> _showCompletionSuccess() {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_circle_outline,
-                  color: Color(0xFF2E7D32), size: 36),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '🎉 Project Completed!',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Great work! The project has been marked as completed.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary, height: 1.5),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('Done',
-                    style: TextStyle(color: Colors.white)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
     final myId = supabase.auth.currentUser?.id ?? '';
 
-    final canComplete = widget.isClient &&
-        widget.projectId != null &&
-        widget.proposalId != null;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.otherPersonName,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            if (widget.projectTitle.isNotEmpty)
-              Text(
-                widget.projectTitle,
-                style: TextStyle(
-                    fontSize: 11, color: AppColors.textSecondary),
+        title: InkWell(
+          onTap: _openProfile,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      widget.otherPersonName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  if (widget.otherPersonId != null) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 18, color: AppColors.textSecondary),
+                  ],
+                ],
               ),
-          ],
+              if (widget.projectTitle.isNotEmpty)
+                Text(
+                  widget.projectTitle,
+                  style: TextStyle(
+                      fontSize: 11, color: AppColors.textSecondary),
+                ),
+            ],
+          ),
         ),
         actions: [
-          if (canComplete)
-            _completing
-                ? Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                    color: AppColors.primary, strokeWidth: 2),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (value) {
+              if (value == 'profile') _openProfile();
+              if (value == 'clear') _clearChat();
+            },
+            itemBuilder: (_) => [
+              if (widget.otherPersonId != null)
+                const PopupMenuItem(
+                  value: 'profile',
+                  child: Row(children: [
+                    Icon(Icons.person_outline_rounded, size: 18),
+                    SizedBox(width: 10),
+                    Text('View profile'),
+                  ]),
+                ),
+              const PopupMenuItem(
+                value: 'clear',
+                child: Row(children: [
+                  Icon(Icons.delete_sweep_outlined, size: 18),
+                  SizedBox(width: 10),
+                  Text('Clear chat'),
+                ]),
               ),
-            )
-                : TextButton.icon(
-              onPressed: _markComplete,
-              icon: Icon(Icons.task_alt_outlined,
-                  size: 16, color: AppColors.primary),
-              label: Text('Complete',
-                  style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13)),
-            ),
+            ],
+          ),
         ],
       ),
       body: Column(

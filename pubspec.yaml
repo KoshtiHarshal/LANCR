@@ -59,6 +59,28 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+
+# Native splash screen (shown on fresh launch before Flutter boots).
+# Brand bg: Ice-Latte (#EDE8E1) light / Neutral-ink (#0F1113) dark.
+# Uses the PADDED logo variants (splash_full_*) — same baked-in mint-border
+# artwork as the in-app logo, but on a larger transparent canvas so it fits
+# inside Android 12's circular icon zone (no circular crop). The Android-12
+# icon background matches the splash colour so the system circle is invisible.
+# The in-app logo (AppLogo) uses the tight splash_light/dark.png variants.
+# Regenerate the PNGs: python tool then `dart run flutter_native_splash:create`
+flutter_native_splash:
+  color: "#EDE8E1"
+  color_dark: "#0F1113"
+  image: "assets/branding/splash_full_light.png"
+  image_dark: "assets/branding/splash_full_dark.png"
+  android_12:
+    color: "#EDE8E1"
+    color_dark: "#0F1113"
+    image: "assets/branding/splash_full_light.png"
+    image_dark: "assets/branding/splash_full_dark.png"
+    icon_background_color: "#EDE8E1"
+    icon_background_color_dark: "#0F1113"
 
 # App launcher icon generation.
 # 1. Save a square 1024x1024 PNG to assets/branding/app_icon.png
@@ -85,6 +107,8 @@ flutter:
 
   assets:
     - assets/branding/
+    - docs/privacy_policy.md
+    - docs/terms_of_service.md
 
   # To add assets to your application, add an assets section, like this:
   # assets:

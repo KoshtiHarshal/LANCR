@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/projects/presentation/browse_projects_page.dart';
@@ -12,7 +13,6 @@ import '../../features/projects/presentation/freelancer_home_page.dart';
 import '../../features/proposals/presentation/my_proposals_page.dart';
 import '../../features/messages/presentation/conversations_page.dart';
 import '../theme/app_colors.dart';
-import '../../features/profiles/presentation/profile_page.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Bottom nav index state
@@ -96,19 +96,20 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
         final isClient = role == 'client';
 
         // ── Pages ──────────────────────────────────────────
+        // Profile is no longer a tab — it opens from the home header avatar.
+        // For clients, "Post" (nav index 1) is a virtual tab that pushes a
+        // route instead of swapping a body, so the client pages skip it.
         final pages = isClient
-            ? [
-          const ClientHomePage(),    // 0 - Home
-          const ClientProjectsPage(), // 1 - My Projects
-          const ConversationsPage(), // 2 - Messages
-          const ProfilePage(),       // 3 - Profile
+            ? const [
+          ClientHomePage(),     // nav 0 - Home
+          ClientProjectsPage(), // nav 2 - Projects
+          ConversationsPage(),  // nav 3 - Messages
         ]
-            : [
-          const FreelancerHomePage(),  // 0 - Home
-          const BrowseProjectsPage(),  // 1 - Browse
-          const MyProposalsPage(),     // 2 - Proposals
-          const ConversationsPage(),   // 3 - Messages
-          const ProfilePage(),         // 4 - Profile
+            : const [
+          FreelancerHomePage(), // 0 - Home
+          BrowseProjectsPage(), // 1 - Browse
+          MyProposalsPage(),    // 2 - Proposals
+          ConversationsPage(),  // 3 - Messages
         ];
 
         // ── Nav items ──────────────────────────────────────
@@ -120,6 +121,11 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            activeIcon: Icon(Icons.add_circle),
+            label: 'Post',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.folder_outlined),
             activeIcon: Icon(Icons.folder),
             label: 'Projects',
@@ -128,11 +134,6 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
             icon: Icon(Icons.chat_bubble_outline),
             activeIcon: Icon(Icons.chat_bubble),
             label: 'Messages',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
           ),
         ]
             : const [
@@ -156,14 +157,15 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
             activeIcon: Icon(Icons.chat_bubble),
             label: 'Messages',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
         ];
 
-        final safeIndex = currentIndex.clamp(0, pages.length - 1);
+        // Selected index is a NAV index (clients have 4 nav items / 3 pages).
+        final safeIndex = currentIndex.clamp(0, navItems.length - 1);
+
+        // Map the selected nav index to the body page.
+        final Widget body = isClient
+            ? pages[switch (safeIndex) { 2 => 1, 3 => 2, _ => 0 }]
+            : pages[safeIndex.clamp(0, pages.length - 1)];
 
         return PopScope(
           canPop: false,
@@ -172,11 +174,18 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
             await _onWillPop(safeIndex);
           },
           child: Scaffold(
-            body: pages[safeIndex],
+            body: body,
             bottomNavigationBar: BottomNavigationBar(
               currentIndex: safeIndex,
-              onTap: (idx) =>
-                  ref.read(bottomNavIndexProvider.notifier).setIndex(idx),
+              onTap: (idx) {
+                // Client "Post" tab pushes the post-project route and keeps
+                // the current tab selected.
+                if (isClient && idx == 1) {
+                  context.push('/projects/post');
+                  return;
+                }
+                ref.read(bottomNavIndexProvider.notifier).setIndex(idx);
+              },
               type: BottomNavigationBarType.fixed,
               selectedItemColor: AppColors.primary,
               unselectedItemColor: AppColors.textSecondary,

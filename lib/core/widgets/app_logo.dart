@@ -3,9 +3,12 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Theme-aware LANCR logo/illustration. Shows the dark-background artwork in
-/// dark mode and the light-background artwork in light mode. Falls back to a
-/// styled wordmark if the asset hasn't been added yet.
+/// Theme-aware LANCR logo, used everywhere in the app (auth, splash, headers).
+///
+/// Shows the pre-bordered brand artwork — `splash_light.png` in light mode and
+/// `splash_dark.png` in dark mode. The mint border and rounded corners are
+/// baked into the PNGs, so this widget just renders the correct one. The same
+/// artwork (padded variant) is used for the native splash screen.
 class AppLogo extends StatelessWidget {
   final double size;
 
@@ -14,14 +17,15 @@ class AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final asset = AppColors.isDark
-        ? 'assets/branding/lancr_dark.png'
-        : 'assets/branding/lancr_light.png';
+        ? 'assets/branding/splash_dark.png'
+        : 'assets/branding/splash_light.png';
 
     return Image.asset(
       asset,
       width: size,
       height: size,
       fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
       errorBuilder: (_, _, _) => _Wordmark(size: size),
     );
   }

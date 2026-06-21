@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/presentation/auth_provider.dart';
-import '../../notifications/presentation/notifications_page.dart';
 import '../../profiles/presentation/profile_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
+import 'home_header.dart';
 
 // ── Open projects count ──────────────────────────────────────
 final clientProjectsCountProvider = FutureProvider<int>((ref) async {
@@ -54,10 +54,6 @@ final clientProposalsCountProvider = FutureProvider<int>((ref) async {
 });
 
 // ── Completed projects count ─────────────────────────────────
-// BUG 3 FIX: was previously querying status = 'closed'.
-// acceptProposal sets status → 'closed' (in-progress).
-// completeProject sets status → 'completed' (done).
-// This provider must query 'completed', not 'closed'.
 final clientCompletedCountProvider = FutureProvider<int>((ref) async {
   final userId = ref.watch(authProvider).value?.id;
   if (userId == null) return 0;
@@ -66,7 +62,7 @@ final clientCompletedCountProvider = FutureProvider<int>((ref) async {
         .from('projects')
         .select('id')
         .eq('client_id', userId)
-        .eq('status', 'completed'); // ← was 'closed' — fixed
+        .eq('status', 'completed');
     return (data as List).length;
   } catch (_) {
     return 0;
@@ -74,10 +70,9 @@ final clientCompletedCountProvider = FutureProvider<int>((ref) async {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Client Home Page
-// BUG 3 FIX: Changed to ConsumerStatefulWidget so we can
-// invalidate dashboard providers when we pop back from
-// ClientProjectsPage or ViewProposalsPage.
+// Client Home Page — mirrors the freelancer home layout:
+// shared hero header (drag-down to profile), an Overview stats
+// section below, and tips.
 // ─────────────────────────────────────────────────────────────
 class ClientHomePage extends ConsumerStatefulWidget {
   const ClientHomePage({super.key});
@@ -87,15 +82,6 @@ class ClientHomePage extends ConsumerStatefulWidget {
 }
 
 class _ClientHomePageState extends ConsumerState<ClientHomePage> {
-  // BUG 3 FIX: push helper that invalidates dashboard counts on pop
-  Future<void> _pushAndRefresh(String route) async {
-    await context.push(route);
-    if (!mounted) return;
-    ref.invalidate(clientProjectsCountProvider);
-    ref.invalidate(clientProposalsCountProvider);
-    ref.invalidate(clientCompletedCountProvider);
-  }
-
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
@@ -103,8 +89,8 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
     final proposalsCountAsync = ref.watch(clientProposalsCountProvider);
     final completedCountAsync = ref.watch(clientCompletedCountProvider);
 
-    final name = profileAsync.asData?.value?['name'] ?? 'there';
-    final firstName = name.split(' ').first;
+    final name = profileAsync.asData?.value?['name'] as String? ?? '';
+    final avatarUrl = profileAsync.asData?.value?['avatar_url'] as String?;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -117,219 +103,65 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
           ref.invalidate(profileProvider);
         },
         child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // ── Header ─────────────────────────────────
+            // ── Hero Header (drag-down to open profile) ──
             SliverToBoxAdapter(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary, Color(0xFF007A75)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              child: HomeHeader(
+                name: name,
+                avatarUrl: avatarUrl,
+                fallbackName: 'there',
+                onProfileOpen: () => context.push('/profile/me'),
+              ),
+            ),
+
+            // ── Body ───────────────────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const SizedBox(height: 24),
+
+                  // ── Overview stats ──────────────────
+                  _OverviewSection(
+                    openCount: openCountAsync,
+                    proposalsCount: proposalsCountAsync,
+                    completedCount: completedCountAsync,
                   ),
-                  borderRadius:
-                  BorderRadius.vertical(bottom: Radius.circular(28)),
-                ),
-                padding: EdgeInsets.fromLTRB(
-                    20,
-                    MediaQuery.of(context).padding.top + 20,
-                    20,
-                    28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Hello, $firstName 👋',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Manage your projects & proposals',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const NotificationBell(color: Colors.white70),
-                        IconButton(
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                backgroundColor: AppColors.surface,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16)),
-                                title: Text('Sign Out',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary)),
-                                content: Text(
-                                    'Are you sure you want to sign out?',
-                                    style: TextStyle(
-                                        color: AppColors.textSecondary)),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(ctx, false),
-                                    child: Text('Cancel',
-                                        style: TextStyle(
-                                            color: AppColors.textSecondary)),
-                                  ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                        const Color(0xFFD94F4F)),
-                                    onPressed: () =>
-                                        Navigator.pop(ctx, true),
-                                    child: const Text('Sign Out'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm == true && mounted) {
-                              await ref
-                                  .read(authNotifierProvider.notifier)
-                                  .logout();
-                            }
-                          },
-                          icon: const Icon(Icons.logout_rounded,
-                              color: Colors.white70),
-                          tooltip: 'Sign out',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
 
-                    // ── Stats row ─────────────────────────
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            label: 'Open Projects',
-                            valueAsync: openCountAsync,
-                            icon: Icons.work_outline,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _StatCard(
-                            label: 'Proposals',
-                            valueAsync: proposalsCountAsync,
-                            icon: Icons.inbox_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _StatCard(
-                            label: 'Completed',
-                            valueAsync: completedCountAsync,
-                            icon: Icons.check_circle_outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                  const SizedBox(height: 28),
 
-            // ── Quick Actions ───────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                  // ── Tips ────────────────────────────
+                  Text(
+                    'Tips for Success',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _ActionCard(
-                            icon: Icons.add_circle_outline,
-                            label: 'Post a Project',
-                            subtitle: 'Find talented freelancers',
-                            onTap: () =>
-                                _pushAndRefresh('/projects/post'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _ActionCard(
-                            icon: Icons.folder_open_outlined,
-                            label: 'My Projects',
-                            subtitle: 'View & manage posts',
-                            // BUG 3 FIX: navigate with refresh so counts
-                            // update after returning from manage actions
-                            onTap: () =>
-                                _pushAndRefresh('/client/projects'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Tips section ────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tips for Success',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _TipCard(
-                      icon: Icons.lightbulb_outline,
-                      title: 'Write clear descriptions',
-                      body:
-                      'Projects with detailed descriptions receive 3× more quality proposals.',
-                    ),
-                    const SizedBox(height: 10),
-                    _TipCard(
-                      icon: Icons.people_outline,
-                      title: 'Review profiles carefully',
-                      body:
-                      'Check experience, skills, and past work before accepting a proposal.',
-                    ),
-                    const SizedBox(height: 10),
-                    _TipCard(
-                      icon: Icons.star_outline,
-                      title: 'Set a realistic budget',
-                      body:
-                      'Competitive budgets attract top freelancers faster.',
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  _TipCard(
+                    icon: Icons.lightbulb_outline,
+                    title: 'Write clear descriptions',
+                    body:
+                        'Projects with detailed descriptions receive 3× more quality proposals.',
+                  ),
+                  const SizedBox(height: 10),
+                  _TipCard(
+                    icon: Icons.people_outline,
+                    title: 'Review profiles carefully',
+                    body:
+                        'Check experience, skills, and past work before accepting a proposal.',
+                  ),
+                  const SizedBox(height: 10),
+                  _TipCard(
+                    icon: Icons.star_outline,
+                    title: 'Set a realistic budget',
+                    body:
+                        'Competitive budgets attract top freelancers faster.',
+                  ),
+                ]),
               ),
             ),
           ],
@@ -340,112 +172,147 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Stat Card (header pill inside gradient)
+// Overview stats section (below the header, like freelancer home)
 // ─────────────────────────────────────────────────────────────
-class _StatCard extends StatelessWidget {
-  final String label;
-  final AsyncValue<int> valueAsync;
-  final IconData icon;
+class _OverviewSection extends StatelessWidget {
+  final AsyncValue<int> openCount;
+  final AsyncValue<int> proposalsCount;
+  final AsyncValue<int> completedCount;
 
-  const _StatCard({
-    required this.label,
-    required this.valueAsync,
-    required this.icon,
+  const _OverviewSection({
+    required this.openCount,
+    required this.proposalsCount,
+    required this.completedCount,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(height: 6),
-          valueAsync.when(
-            loading: () => const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                  color: Colors.white, strokeWidth: 2),
-            ),
-            error: (_, _) => const Text('–',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white)),
-            data: (v) => Text(
-              '$v',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Overview',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+            letterSpacing: -0.2,
+          ),
+        ),
+        const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            children: [
+              _StatTile(
+                valueAsync: openCount,
+                label: 'Open',
+                icon: Icons.work_outline,
+                iconColor: const Color(0xFF00A19B),
+                bgColor: const Color(0xFFE0F7F5),
               ),
-            ),
+              const SizedBox(width: 10),
+              _StatTile(
+                valueAsync: proposalsCount,
+                label: 'Proposals',
+                icon: Icons.inbox_outlined,
+                iconColor: const Color(0xFF1565C0),
+                bgColor: const Color(0xFFE3F2FD),
+              ),
+              const SizedBox(width: 10),
+              _StatTile(
+                valueAsync: completedCount,
+                label: 'Done',
+                icon: Icons.verified_rounded,
+                iconColor: const Color(0xFF2E7D32),
+                bgColor: const Color(0xFFE8F5E9),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10, color: Colors.white70),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Action Card
-// ─────────────────────────────────────────────────────────────
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
+class _StatTile extends StatelessWidget {
+  final AsyncValue<int> valueAsync;
   final String label;
-  final String subtitle;
-  final VoidCallback onTap;
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
 
-  const _ActionCard({
-    required this.icon,
+  const _StatTile({
+    required this.valueAsync,
     required this.label,
-    required this.subtitle,
-    required this.onTap,
+    required this.icon,
+    required this.iconColor,
+    required this.bgColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.shadow),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: bgColor,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
+              child: Icon(icon, size: 16, color: iconColor),
             ),
-            const SizedBox(height: 10),
-            Text(label,
+            const SizedBox(height: 12),
+            valueAsync.when(
+              loading: () => Text(
+                '…',
                 style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: AppColors.textPrimary)),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              error: (_, _) => Text(
+                '0',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              data: (v) => Text(
+                '$v',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(subtitle,
-                style: TextStyle(
-                    fontSize: 11, color: AppColors.textSecondary)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),

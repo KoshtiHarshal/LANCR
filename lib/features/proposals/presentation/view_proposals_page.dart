@@ -10,8 +10,10 @@ import '../../projects/presentation/project_detail_provider.dart';
 import '../../proposals//presentation/my_proposals_provider.dart';
 import '../../profiles/presentation/profile_provider.dart';
 import '../../projects/presentation/client_home_page.dart'; // for clientProjectsCountProvider etc.
+import '../../projects/presentation/client_projects_page.dart'; // for clientProjectsProvider
 import '../../reviews/data/reviews_repository.dart';
 import '../../reviews/presentation/review_widgets.dart';
+import '../../reviews/presentation/reviews_provider.dart';
 
 class ViewProposalsPage extends ConsumerWidget {
   final String projectId;
@@ -36,6 +38,9 @@ class ViewProposalsPage extends ConsumerWidget {
       ref.invalidate(clientProjectsCountProvider);
       ref.invalidate(clientProposalsCountProvider);
       ref.invalidate(clientCompletedCountProvider);
+      // My Projects list — so a completed project moves to the Completed tab
+      // (and an accepted one moves to In Progress) without needing a restart.
+      ref.invalidate(clientProjectsProvider);
     }
 
     return Scaffold(
@@ -137,7 +142,7 @@ class ViewProposalsPage extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────
 // Proposal Card (unchanged except _complete snack text)
 // ─────────────────────────────────────────────────────────────
-class _ProposalCard extends StatefulWidget {
+class _ProposalCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> proposal;
   final String projectId;
   final VoidCallback onAction;
@@ -149,10 +154,10 @@ class _ProposalCard extends StatefulWidget {
   });
 
   @override
-  State<_ProposalCard> createState() => _ProposalCardState();
+  ConsumerState<_ProposalCard> createState() => _ProposalCardState();
 }
 
-class _ProposalCardState extends State<_ProposalCard> {
+class _ProposalCardState extends ConsumerState<_ProposalCard> {
   bool _loading = false;
   bool _expanded = false;
 
@@ -276,12 +281,21 @@ class _ProposalCardState extends State<_ProposalCard> {
     final revieweeName = reviewCtx['revieweeName'] as String? ?? 'this user';
     if (!canReview || revieweeId == null) return;
 
-    await showReviewDialog(
+    final submitted = await showReviewDialog(
       context,
       projectId: widget.projectId,
       revieweeId: revieweeId,
       revieweeName: revieweeName,
     );
+
+    // Refresh the reviewee's rating/reviews/profile everywhere so the new
+    // rating shows immediately on their profile and public profile without
+    // needing to reopen the app.
+    if (submitted == true) {
+      ref.invalidate(userRatingStatsProvider(revieweeId));
+      ref.invalidate(userReviewsProvider(revieweeId));
+      ref.invalidate(publicProfileProvider(revieweeId));
+    }
   }
 
   void _showSnack(String msg, {required bool success}) {

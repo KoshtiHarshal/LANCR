@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../profiles/presentation/profile_provider.dart';
+import '../../proposals/presentation/my_proposals_provider.dart';
+import '../../reviews/presentation/review_widgets.dart';
 import 'project_detail_provider.dart';
+import 'project_completion_provider.dart' show acceptedFreelancerProvider;
 
 class ProjectDetailPage extends ConsumerWidget {
   final String projectId;
@@ -394,29 +397,32 @@ class ProjectDetailPage extends ConsumerWidget {
                     // ── Budget + Duration cards ───────────
                     const _SectionHeader(label: 'Project Details'),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailChip(
-                            icon: Icons.attach_money_rounded,
-                            label: 'Budget',
-                            value: _formatBudget(project),
-                            bgColor: AppColors.primaryLight,
-                            valueColor: AppColors.primary,
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _DetailChip(
+                              icon: Icons.attach_money_rounded,
+                              label: 'Budget',
+                              value: _formatBudget(project),
+                              bgColor: AppColors.primaryLight,
+                              valueColor: AppColors.primary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DetailChip(
-                            icon: Icons.schedule_outlined,
-                            label: 'Duration',
-                            value: _formatDuration(
-                                project['duration'] as String?),
-                            bgColor: AppColors.surface,
-                            valueColor: AppColors.textPrimary,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _DetailChip(
+                              icon: Icons.schedule_outlined,
+                              label: 'Duration',
+                              value: _formatDuration(
+                                  project['duration'] as String?),
+                              bgColor: AppColors.surface,
+                              valueColor: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 32),
 
@@ -426,6 +432,15 @@ class ProjectDetailPage extends ConsumerWidget {
                         loading: () => const SizedBox.shrink(),
                         error: (e, s) => const SizedBox.shrink(),
                         data: (existing) {
+                          // Project completed → show a Completed state and let
+                          // the freelancer remove it from their My Proposals.
+                          if (status == 'completed') {
+                            return _CompletedFreelancerSection(
+                              projectId: projectId,
+                              proposalId: existing?['id'] as String?,
+                              bidAmount: existing?['bid_amount'],
+                            );
+                          }
                           if (existing != null) {
                             return _ProposalStatusBanner(
                               bidAmount: existing['bid_amount'],
@@ -478,7 +493,11 @@ class ProjectDetailPage extends ConsumerWidget {
                       ),
 
                     // ── CTA — Client ─────────────────────
-                    if (isClient) ...[
+                    // Completed project: hide proposal/edit actions and show
+                    // the hired freelancer + their rating instead.
+                    if (isClient && status == 'completed')
+                      _HiredFreelancerCard(projectId: projectId),
+                    if (isClient && status != 'completed') ...[
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -743,6 +762,301 @@ class _ProposalStatusBanner extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Completed project — freelancer section (status + remove)
+// ─────────────────────────────────────────────────────────────
+class _CompletedFreelancerSection extends ConsumerStatefulWidget {
+  final String projectId;
+  final String? proposalId;
+  final dynamic bidAmount;
+
+  const _CompletedFreelancerSection({
+    required this.projectId,
+    required this.proposalId,
+    required this.bidAmount,
+  });
+
+  @override
+  ConsumerState<_CompletedFreelancerSection> createState() =>
+      _CompletedFreelancerSectionState();
+}
+
+class _CompletedFreelancerSectionState
+    extends ConsumerState<_CompletedFreelancerSection> {
+  bool _removing = false;
+
+  static const _green = Color(0xFF2E7D32);
+
+  Future<void> _remove() async {
+    final id = widget.proposalId;
+    if (id == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Remove proposal?',
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        content: Text(
+          'This removes the completed project from your My Proposals list. '
+          'Your stats and reviews are not affected.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD94F4F)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _removing = true);
+    try {
+      await archiveProposal(proposalId: id);
+      // Refresh the list (and its derived stats). Stats intentionally keep
+      // counting archived proposals, so the numbers stay correct.
+      ref.invalidate(myProposalsProvider);
+      ref.invalidate(freelancerStatsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Removed from your proposals.'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _removing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _green.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _green.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: _green, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Project Completed',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: _green,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.bidAmount != null
+                          ? 'Your bid of \$${widget.bidAmount} was completed.'
+                          : 'This project has been completed.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (widget.proposalId != null) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _removing ? null : _remove,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFD94F4F),
+                side: const BorderSide(color: Color(0xFFD94F4F)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: _removing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFFD94F4F)),
+                    )
+                  : const Icon(Icons.delete_outline, size: 18),
+              label: const Text('Remove from My Proposals'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Completed project — client view of the hired freelancer
+// ─────────────────────────────────────────────────────────────
+class _HiredFreelancerCard extends ConsumerWidget {
+  final String projectId;
+  const _HiredFreelancerCard({required this.projectId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hiredAsync = ref.watch(acceptedFreelancerProvider(projectId));
+
+    return hiredAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (hired) {
+        if (hired == null) return const SizedBox.shrink();
+        final profile = hired['profiles'] as Map?;
+        final freelancerId = hired['freelancer_id'] as String?;
+        final name = profile?['name'] as String? ?? 'Freelancer';
+        final headline = profile?['headline'] as String?;
+        final bidAmount = hired['bid_amount'];
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.shadow),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.verified_outlined,
+                      size: 16, color: AppColors.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Hired Freelancer',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: freelancerId != null
+                    ? () => context.push('/profile/$freelancerId')
+                    : null,
+                borderRadius: BorderRadius.circular(12),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.primaryLight,
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'F',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          if (headline != null && headline.isNotEmpty)
+                            Text(
+                              headline,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          if (freelancerId != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: RatingSummary(userId: freelancerId),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (freelancerId != null)
+                      Icon(Icons.arrow_forward_ios_rounded,
+                          size: 14, color: AppColors.textSecondary),
+                  ],
+                ),
+              ),
+              if (bidAmount != null) ...[
+                const SizedBox(height: 12),
+                Divider(color: AppColors.shadow, height: 1),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.payments_outlined,
+                        size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Final amount: \$$bidAmount',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

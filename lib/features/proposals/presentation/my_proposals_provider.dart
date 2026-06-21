@@ -11,10 +11,12 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
 
   try {
     // Single query: embed the project via the FK (no N+1).
+    // We fetch archived rows too (so stats stay accurate); the list page
+    // filters archived proposals out of the visible list.
     final rows = await supabase
         .from('proposals')
-        .select('id, bid_amount, status, cover_letter, created_at, project_id, '
-            'project:projects!project_id(id, title, description, budget_min, budget_max, status)')
+        .select('id, bid_amount, status, cover_letter, created_at, archived, project_id, '
+            'project:projects!project_id(id, title, description, budget_min, budget_max, status, client_id, client:profiles!client_id(name))')
         .eq('freelancer_id', userId)
         .order('created_at', ascending: false);
 
@@ -23,6 +25,19 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
     throw Exception('Failed to load proposals: $e');
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// Archive (soft-delete) a freelancer's own proposal. This hides it from
+// the My Proposals list without changing any stats — stat providers
+// intentionally keep counting archived proposals.
+// ─────────────────────────────────────────────────────────────
+Future<void> archiveProposal({required String proposalId}) async {
+  // Goes through a SECURITY DEFINER RPC because freelancers have no direct
+  // UPDATE policy on proposals (a plain update would be blocked by RLS).
+  await supabase.rpc('archive_my_proposal', params: {
+    'p_proposal_id': proposalId,
+  });
+}
 
 // ─────────────────────────────────────────────────────────────
 // Stats computed from myProposalsProvider

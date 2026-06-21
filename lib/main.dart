@@ -53,8 +53,10 @@ class _LancrAppState extends ConsumerState<LancrApp>
 
   @override
   void didChangePlatformBrightness() {
-    // Repaint when the OS theme changes while in System mode.
+    // Repaint when the OS theme changes while in System mode, and refresh the
+    // routed pages so screens already in the stack pick up the new colours.
     setState(() {});
+    themeRefreshNotifier.value++;
   }
 
   @override
@@ -66,6 +68,10 @@ class _LancrAppState extends ConsumerState<LancrApp>
     AppColors.isDark =
         mode == ThemeMode.dark || (mode == ThemeMode.system && platformDark);
 
+    // J5: AppColors tokens are static runtime getters (no InheritedWidget), so
+    // pages already in the navigator stack don't repaint on a theme flip. The
+    // router (see routerProvider) listens to themeModeProvider and refreshes the
+    // route stack, which rebuilds every on-screen page with the new colours.
     return MaterialApp.router(
       title: 'LANCR',
       theme: AppTheme.theme,

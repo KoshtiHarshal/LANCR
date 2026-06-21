@@ -16,9 +16,10 @@ import '../../profiles/presentation/profile_provider.dart';
 
 // ── Configuration — replace these with your real values before publishing ──
 const _appVersion = '1.0.0';
-const _privacyUrl = 'https://lancr.app/privacy'; // TODO: host real policy
-const _termsUrl = 'https://lancr.app/terms'; // TODO: host real terms
-const _supportEmail = 'support@lancr.app'; // TODO: real support inbox
+// Privacy Policy & Terms are shown in-app from bundled docs (see /legal/*
+// routes). For the Play Store listing you'll still host the same docs publicly
+// (e.g. GitHub Pages) and paste those URLs into the Play Console — not here.
+const _supportEmail = 'lancrapp0@gmail.com'; // temporary; switch to support@lancr.com later
 const _playStoreId = 'com.example.lancr_app'; // TODO: production package id
 
 class SettingsPage extends ConsumerWidget {
@@ -341,12 +342,12 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: 'Privacy Policy',
-                  onTap: () => _open(context, _privacyUrl),
+                  onTap: () => context.push('/legal/privacy'),
                 ),
                 _SettingsTile(
                   icon: Icons.description_outlined,
                   title: 'Terms of Service',
-                  onTap: () => _open(context, _termsUrl),
+                  onTap: () => context.push('/legal/terms'),
                 ),
                 _SettingsTile(
                   icon: Icons.help_outline_rounded,
@@ -536,8 +537,8 @@ class _InfoRow extends StatelessWidget {
               fontSize: 13,
             ),
           ),
-          const Spacer(),
-          Flexible(
+          const SizedBox(width: 12),
+          Expanded(
             child: Text(
               value,
               maxLines: 1,

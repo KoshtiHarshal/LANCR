@@ -22,10 +22,11 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage> {
       final user = supabase.auth.currentUser;
       if (user == null) throw Exception('Not logged in');
 
-      // Update profiles table with selected role
+      // Save the chosen role and mark onboarding complete so the user is
+      // never sent back to role selection again.
       await supabase.from('profiles').update({
         'role': _selectedRole,
-        'profile_completed': false, // still needs full profile
+        'profile_completed': true,
       }).eq('id', user.id);
 
       if (!mounted) return;

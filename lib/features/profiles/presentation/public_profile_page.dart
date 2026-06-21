@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_launcher_util.dart';
+import '../../portfolio/presentation/portfolio_provider.dart';
 import '../../portfolio/presentation/portfolio_widgets.dart';
+import '../../reviews/presentation/reviews_provider.dart';
 import '../../reviews/presentation/review_widgets.dart';
 import 'profile_provider.dart';
 
@@ -91,6 +93,10 @@ class _ProfileContent extends ConsumerWidget {
         ref.invalidate(publicProfileProvider(userId));
         ref.invalidate(freelancerStatsProvider(userId));
         ref.invalidate(clientStatsProvider(userId));
+        ref.invalidate(portfolioProvider(userId));
+        ref.invalidate(userReviewsProvider(userId));
+        ref.invalidate(userRatingStatsProvider(userId));
+        ref.invalidate(clientRecentProjectsProvider(userId));
       },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -169,6 +175,8 @@ class _ProfileContent extends ConsumerWidget {
                   ),
                 ),
                 if (isClient) ...[
+                  const SizedBox(height: 14),
+                  _ClientTrustCard(clientId: userId),
                   const SizedBox(height: 14),
                   _ClientProjectsSection(clientId: userId),
                 ],
@@ -566,6 +574,106 @@ class _InfoPill extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Trust/credibility signals for a client, derived from clientStatsProvider
+// (no extra queries): freelancers hired, projects completed, completion rate.
+class _ClientTrustCard extends ConsumerWidget {
+  final String clientId;
+  const _ClientTrustCard({required this.clientId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(clientStatsProvider(clientId));
+
+    return statsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (v) {
+        // 'activeProjects' counts in-progress (closed) projects; together with
+        // completed projects these are the projects where a freelancer was hired.
+        final active = v['activeProjects'] ?? 0;
+        final completed = v['completedProjects'] ?? 0;
+        final hired = active + completed;
+        final rate = hired > 0 ? ((completed / hired) * 100).round() : null;
+
+        return _SectionCard(
+          icon: Icons.verified_user_outlined,
+          title: 'Hiring activity',
+          child: hired == 0
+              ? Text(
+                  'New to hiring on LANCR.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              : Column(
+                  children: [
+                    _TrustRow(
+                      icon: Icons.handshake_outlined,
+                      label: 'Freelancers hired',
+                      value: '$hired',
+                    ),
+                    Divider(color: AppColors.shadow, height: 18),
+                    _TrustRow(
+                      icon: Icons.check_circle_outline,
+                      label: 'Projects completed',
+                      value: '$completed',
+                    ),
+                    if (rate != null) ...[
+                      Divider(color: AppColors.shadow, height: 18),
+                      _TrustRow(
+                        icon: Icons.trending_up_rounded,
+                        label: 'Completion rate',
+                        value: '$rate%',
+                      ),
+                    ],
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _TrustRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _TrustRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
     );
   }
 }

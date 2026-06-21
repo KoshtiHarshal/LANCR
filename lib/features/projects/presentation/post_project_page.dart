@@ -7,6 +7,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
+import 'browse_projects_provider.dart';
+import 'client_home_page.dart';
+import 'client_projects_page.dart';
+import 'project_detail_provider.dart';
 
 class PostProjectPage extends ConsumerStatefulWidget {
   final String? projectId; // null = create, non-null = edit
@@ -150,6 +154,17 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
           'client_id': user.id,
           'status': 'open',
         });
+      }
+
+      // Refresh lists, dashboard counts and (in edit mode) the detail page.
+      ref.invalidate(browseProjectsProvider);
+      ref.invalidate(clientProjectsProvider);
+      ref.invalidate(clientProjectsCountProvider);
+      ref.invalidate(clientProposalsCountProvider);
+      ref.invalidate(clientCompletedCountProvider);
+      if (_isEditMode) {
+        ref.invalidate(projectDetailProvider(widget.projectId!));
+        ref.invalidate(existingProposalProvider(widget.projectId!));
       }
 
       if (mounted) {
