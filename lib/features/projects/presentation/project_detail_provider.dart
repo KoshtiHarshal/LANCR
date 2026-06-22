@@ -12,7 +12,7 @@ FutureProvider.family<Map<String, dynamic>, String>((ref, projectId) async {
         .from('projects')
         .select(
       'id, title, description, budget_min, budget_max, '
-          'skills, duration, status, created_at, client_id',
+          'skills, duration, status, category, created_at, client_id',
     )
         .eq('id', projectId)
         .single();
@@ -60,6 +60,7 @@ FutureProvider.family<Map<String, dynamic>, String>((ref, projectId) async {
       'skills': project['skills'],
       'duration': project['duration'],
       'status': project['status'],
+      'category': project['category'],
       'created_at': project['created_at'],
       'client_id': project['client_id'],
       'profiles': profile,

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import 'browse_projects_provider.dart';
+import 'saved_projects_provider.dart';
 
 class BrowseProjectsPage extends ConsumerStatefulWidget {
   const BrowseProjectsPage({super.key});
@@ -110,6 +111,11 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
             }
             if (filters.duration != 'any') {
               if ((p['duration'] as String? ?? '') != filters.duration) {
+                return false;
+              }
+            }
+            if (filters.category != 'any') {
+              if ((p['category'] as String? ?? '') != filters.category) {
                 return false;
               }
             }
@@ -251,6 +257,24 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
                                 ],
                               ),
                             ),
+                            // Saved projects
+                            GestureDetector(
+                              onTap: () => context.push('/saved'),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.bookmark_border_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             // Sort button
                             PopupMenuButton<SortOption>(
                               tooltip: 'Sort',
@@ -751,6 +775,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   late String _status;
   late RangeValues _budget;
   late String _duration;
+  late String _category;
 
   @override
   void initState() {
@@ -759,13 +784,15 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
     _status = f.status;
     _budget = RangeValues(f.budgetMin, f.budgetMax);
     _duration = f.duration;
+    _category = f.category;
   }
 
   void _apply() {
     ref.read(filterProvider.notifier)
       ..setStatus(_status)
       ..setBudgetRange(_budget.start, _budget.end)
-      ..setDuration(_duration);
+      ..setDuration(_duration)
+      ..setCategory(_category);
     Navigator.pop(context);
   }
 
@@ -774,6 +801,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
       _status = 'open';
       _budget = const RangeValues(0, 5000);
       _duration = 'any';
+      _category = 'any';
     });
     ref.read(filterProvider.notifier).reset();
     Navigator.pop(context);
@@ -958,6 +986,51 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: 24),
+
+            // Category
+            Text('Category',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in ['any', ...kProjectCategories])
+                  GestureDetector(
+                    onTap: () => setState(() => _category = c),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _category == c
+                            ? AppColors.primary
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _category == c
+                              ? AppColors.primary
+                              : AppColors.shadow,
+                        ),
+                      ),
+                      child: Text(
+                        c == 'any' ? 'Any' : c,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: _category == c
+                              ? Colors.white
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 32),
 
             SizedBox(
@@ -1098,6 +1171,11 @@ class ProjectCard extends StatelessWidget {
                           color: AppColors.textSecondary,
                         ),
                       ),
+                      if (project['id'] != null) ...[
+                        const SizedBox(width: 8),
+                        SaveProjectButton(
+                            projectId: project['id'] as String),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -1236,6 +1314,42 @@ class ProjectCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Save / bookmark toggle for a project card
+// ─────────────────────────────────────────────────────────────
+class SaveProjectButton extends ConsumerWidget {
+  final String projectId;
+  const SaveProjectButton({super.key, required this.projectId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final saved = ref.watch(savedProjectIdsProvider).maybeWhen(
+          data: (ids) => ids.contains(projectId),
+          orElse: () => false,
+        );
+    return GestureDetector(
+      onTap: () async {
+        try {
+          await toggleSaveProject(projectId, currentlySaved: saved);
+          ref.invalidate(savedProjectIdsProvider);
+          ref.invalidate(savedProjectsProvider);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not update saved: $e')),
+            );
+          }
+        }
+      },
+      child: Icon(
+        saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+        size: 20,
+        color: saved ? AppColors.primary : AppColors.textSecondary,
       ),
     );
   }

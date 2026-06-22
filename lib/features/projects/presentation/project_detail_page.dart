@@ -83,6 +83,7 @@ class ProjectDetailPage extends ConsumerWidget {
           final proposalCount =
               project['proposal_count'] as int? ?? 0;
           final status = project['status'] as String? ?? 'open';
+          final category = project['category'] as String?;
 
           return CustomScrollView(
             slivers: [
@@ -170,6 +171,33 @@ class ProjectDetailPage extends ConsumerWidget {
                           height: 1.3,
                         ),
                       ),
+                      if (category != null && category.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.category_outlined,
+                                  size: 12, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(
+                                category,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
 
                       // Stats row

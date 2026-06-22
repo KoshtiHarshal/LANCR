@@ -29,6 +29,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
   final _skillsController = TextEditingController();
 
   String _duration = 'less_1_month';
+  String? _category;
   bool _isLoading = false;
   bool _isLoadingData = false; // for prefill fetch in edit mode
 
@@ -64,9 +65,14 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
       final data = await supabase
           .from('projects')
           .select(
-          'title, description, budget_min, budget_max, skills, duration')
+          'title, description, budget_min, budget_max, skills, duration, category')
           .eq('id', widget.projectId!)
           .single();
+
+      final rawCategory = data['category'] as String?;
+      if (rawCategory != null && kProjectCategories.contains(rawCategory)) {
+        _category = rawCategory;
+      }
 
       _titleController.text = data['title'] as String? ?? '';
       _descController.text = data['description'] as String? ?? '';
@@ -138,6 +144,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
         'budget_max': int.tryParse(_budgetMaxController.text.trim()),
         'skills': skills,
         'duration': _duration,
+        'category': _category,
       };
 
       if (_isEditMode) {
@@ -302,6 +309,33 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
                 (v == null || v.trim().length < 30)
                     ? 'Please write at least 30 characters'
                     : null,
+              ),
+              const SizedBox(height: 20),
+
+              // ── Category ─────────────────────────────
+              _label('Category'),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.shadow),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _category,
+                    isExpanded: true,
+                    hint: Text('Select a category',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                    onChanged: (val) => setState(() => _category = val),
+                    items: kProjectCategories
+                        .map((c) =>
+                            DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
 

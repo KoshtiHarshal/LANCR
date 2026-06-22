@@ -18,6 +18,7 @@ import '../../features/projects/presentation/project_detail_page.dart';
 import '../../features/proposals/presentation/submit_proposal_page.dart';
 import '../../features/proposals/presentation/view_proposals_page.dart';
 import '../../features/projects/presentation/client_projects_page.dart';
+import '../../features/projects/presentation/saved_projects_page.dart';
 import '../../features/projects/presentation/project_completion_page.dart';
 import '../../features/messages/presentation/conversations_page.dart';
 import '../../features/messages/presentation/chat_page.dart';
@@ -350,6 +351,16 @@ final routerProvider = Provider((ref) {
             title: 'Terms of Service',
             assetPath: 'docs/terms_of_service.md',
           ),
+        ),
+      ),
+
+      // ── Saved projects — SLIDE UP transition ───────────────
+      GoRoute(
+        path: '/saved',
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: const SavedProjectsPage(),
         ),
       ),
 

@@ -4,6 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../main.dart';
 
+/// Canonical project categories (shared by post form, browse filter, cards).
+const kProjectCategories = <String>[
+  'Web Development',
+  'Mobile Development',
+  'Design & Creative',
+  'Writing & Translation',
+  'Marketing & Sales',
+  'Video & Animation',
+  'Data & Analytics',
+  'Admin & Support',
+  'Other',
+];
+
 // ── Raw data ──────────────────────────────────────────────────
 final browseProjectsProvider =
 FutureProvider<List<Map<String, dynamic>>>((ref) async {
@@ -12,7 +25,7 @@ FutureProvider<List<Map<String, dynamic>>>((ref) async {
         .from('projects')
         .select(
       'id, title, description, budget_min, budget_max, '
-          'skills, duration, status, created_at, client_id, '
+          'skills, duration, status, category, created_at, client_id, '
           'profiles!client_id(name, company, location), '
           'proposals(count)',
     )
@@ -65,12 +78,14 @@ class FilterState {
   final double budgetMin;
   final double budgetMax;
   final String duration;
+  final String category; // 'any' or a value from kProjectCategories
 
   const FilterState({
     this.status = 'open',
     this.budgetMin = 0,
     this.budgetMax = 5000,
     this.duration = 'any',
+    this.category = 'any',
   });
 
   FilterState copyWith({
@@ -78,19 +93,22 @@ class FilterState {
     double? budgetMin,
     double? budgetMax,
     String? duration,
+    String? category,
   }) =>
       FilterState(
         status: status ?? this.status,
         budgetMin: budgetMin ?? this.budgetMin,
         budgetMax: budgetMax ?? this.budgetMax,
         duration: duration ?? this.duration,
+        category: category ?? this.category,
       );
 
   bool get isDefault =>
       status == 'open' &&
           budgetMin == 0 &&
           budgetMax == 5000 &&
-          duration == 'any';
+          duration == 'any' &&
+          category == 'any';
 }
 
 class FilterNotifier extends Notifier<FilterState> {
@@ -101,6 +119,7 @@ class FilterNotifier extends Notifier<FilterState> {
   void setBudgetRange(double mn, double mx) =>
       state = state.copyWith(budgetMin: mn, budgetMax: mx);
   void setDuration(String d) => state = state.copyWith(duration: d);
+  void setCategory(String c) => state = state.copyWith(category: c);
   void reset() => state = const FilterState();
 }
 
