@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_launcher_util.dart';
+import '../../../main.dart';
+import '../../moderation/presentation/moderation_widgets.dart';
 import '../../portfolio/presentation/portfolio_provider.dart';
 import '../../portfolio/presentation/portfolio_widgets.dart';
 import '../../reviews/presentation/reviews_provider.dart';
@@ -112,6 +114,25 @@ class _ProfileContent extends ConsumerWidget {
               isClient: isClient,
               emailVerified: emailVerified,
               onBack: () => context.pop(),
+              onReport: (supabase.auth.currentUser?.id == userId)
+                  ? null
+                  : () async {
+                      final ok = await showReportDialog(context,
+                          reportedUserId: userId, targetName: name);
+                      if (ok == true && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Report submitted. Thank you.')),
+                        );
+                      }
+                    },
+              onBlock: (supabase.auth.currentUser?.id == userId)
+                  ? null
+                  : () async {
+                      final blocked = await confirmAndBlockUser(
+                          context, ref, userId, name);
+                      if (blocked && context.mounted) context.pop();
+                    },
             ),
           ),
           SliverPadding(
@@ -257,6 +278,8 @@ class _ProfileHero extends StatelessWidget {
   final bool isClient;
   final bool emailVerified;
   final VoidCallback onBack;
+  final VoidCallback? onReport;
+  final VoidCallback? onBlock;
 
   const _ProfileHero({
     required this.userId,
@@ -267,6 +290,8 @@ class _ProfileHero extends StatelessWidget {
     required this.isClient,
     required this.emailVerified,
     required this.onBack,
+    this.onReport,
+    this.onBlock,
   });
 
   @override
@@ -302,19 +327,52 @@ class _ProfileHero extends StatelessWidget {
           ),
           Column(
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  onPressed: onBack,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.16),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: onBack,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.16),
+                    ),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
-                  icon: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
+                  const Spacer(),
+                  if (onReport != null || onBlock != null)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert_rounded,
+                          color: Colors.white),
+                      onSelected: (v) {
+                        if (v == 'report') onReport?.call();
+                        if (v == 'block') onBlock?.call();
+                      },
+                      itemBuilder: (_) => [
+                        if (onReport != null)
+                          const PopupMenuItem(
+                            value: 'report',
+                            child: Row(children: [
+                              Icon(Icons.flag_outlined, size: 18),
+                              SizedBox(width: 10),
+                              Text('Report'),
+                            ]),
+                          ),
+                        if (onBlock != null)
+                          const PopupMenuItem(
+                            value: 'block',
+                            child: Row(children: [
+                              Icon(Icons.block,
+                                  size: 18, color: Color(0xFFD94F4F)),
+                              SizedBox(width: 10),
+                              Text('Block',
+                                  style: TextStyle(color: Color(0xFFD94F4F))),
+                            ]),
+                          ),
+                      ],
+                    ),
+                ],
               ),
               Container(
                 width: 88,

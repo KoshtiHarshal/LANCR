@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
 import '../../reviews/presentation/review_widgets.dart';
 import '../../reviews/presentation/reviews_provider.dart';
+import '../../moderation/presentation/moderation_widgets.dart';
 import 'messages_provider.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -101,6 +102,27 @@ class _ChatPageState extends ConsumerState<ChatPage>
   Future<void> _openProfile() async {
     final id = widget.otherPersonId;
     if (id != null) context.push('/profile/$id');
+  }
+
+  Future<void> _report() async {
+    final ok = await showReportDialog(
+      context,
+      reportedUserId: widget.otherPersonId,
+      targetName: widget.otherPersonName,
+    );
+    if (ok == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Report submitted. Thank you.')),
+      );
+    }
+  }
+
+  Future<void> _blockAndLeave() async {
+    final id = widget.otherPersonId;
+    if (id == null) return;
+    final blocked =
+        await confirmAndBlockUser(context, ref, id, widget.otherPersonName);
+    if (blocked && mounted) context.pop();
   }
 
   Future<void> _clearChat() async {
@@ -224,6 +246,8 @@ class _ChatPageState extends ConsumerState<ChatPage>
             onSelected: (value) {
               if (value == 'profile') _openProfile();
               if (value == 'clear') _clearChat();
+              if (value == 'report') _report();
+              if (value == 'block') _blockAndLeave();
             },
             itemBuilder: (_) => [
               if (widget.otherPersonId != null)
@@ -243,6 +267,24 @@ class _ChatPageState extends ConsumerState<ChatPage>
                   Text('Clear chat'),
                 ]),
               ),
+              if (widget.otherPersonId != null)
+                const PopupMenuItem(
+                  value: 'report',
+                  child: Row(children: [
+                    Icon(Icons.flag_outlined, size: 18),
+                    SizedBox(width: 10),
+                    Text('Report'),
+                  ]),
+                ),
+              if (widget.otherPersonId != null)
+                const PopupMenuItem(
+                  value: 'block',
+                  child: Row(children: [
+                    Icon(Icons.block, size: 18, color: Color(0xFFD94F4F)),
+                    SizedBox(width: 10),
+                    Text('Block', style: TextStyle(color: Color(0xFFD94F4F))),
+                  ]),
+                ),
             ],
           ),
         ],

@@ -10,62 +10,24 @@ import '../../../core/theme/app_colors.dart';
 import '../../../main.dart';
 import 'home_header.dart';
 
-// ── Open projects count ──────────────────────────────────────
-final clientProjectsCountProvider = FutureProvider<int>((ref) async {
+// Client dashboard counts in a single aggregate RPC (open projects, proposals
+// received, completed projects) — replaces three row-fetching providers.
+typedef ClientCounts = ({int open, int proposals, int completed});
+
+final clientDashboardCountsProvider = FutureProvider<ClientCounts>((ref) async {
   final userId = ref.watch(authProvider).value?.id;
-  if (userId == null) return 0;
+  if (userId == null) return (open: 0, proposals: 0, completed: 0);
   try {
-    final data = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', userId)
-        .eq('status', 'open');
-    return (data as List).length;
+    final rows = await supabase.rpc('client_dashboard_counts');
+    final list = rows as List;
+    final row = list.isNotEmpty ? list.first as Map : const {};
+    return (
+      open: (row['open_projects'] as int?) ?? 0,
+      proposals: (row['proposals_received'] as int?) ?? 0,
+      completed: (row['completed_projects'] as int?) ?? 0,
+    );
   } catch (_) {
-    return 0;
-  }
-});
-
-// ── Proposals received count (across all client's projects) ──
-final clientProposalsCountProvider = FutureProvider<int>((ref) async {
-  final userId = ref.watch(authProvider).value?.id;
-  if (userId == null) return 0;
-  try {
-    final projects = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', userId);
-
-    final projectIds = (projects as List)
-        .map((p) => p['id'] as String)
-        .toList();
-
-    if (projectIds.isEmpty) return 0;
-
-    final proposals = await supabase
-        .from('proposals')
-        .select('id')
-        .inFilter('project_id', projectIds);
-
-    return (proposals as List).length;
-  } catch (_) {
-    return 0;
-  }
-});
-
-// ── Completed projects count ─────────────────────────────────
-final clientCompletedCountProvider = FutureProvider<int>((ref) async {
-  final userId = ref.watch(authProvider).value?.id;
-  if (userId == null) return 0;
-  try {
-    final data = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', userId)
-        .eq('status', 'completed');
-    return (data as List).length;
-  } catch (_) {
-    return 0;
+    return (open: 0, proposals: 0, completed: 0);
   }
 });
 
@@ -85,9 +47,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
-    final openCountAsync = ref.watch(clientProjectsCountProvider);
-    final proposalsCountAsync = ref.watch(clientProposalsCountProvider);
-    final completedCountAsync = ref.watch(clientCompletedCountProvider);
+    final countsAsync = ref.watch(clientDashboardCountsProvider);
 
     final name = profileAsync.asData?.value?['name'] as String? ?? '';
     final avatarUrl = profileAsync.asData?.value?['avatar_url'] as String?;
@@ -97,9 +57,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () async {
-          ref.invalidate(clientProjectsCountProvider);
-          ref.invalidate(clientProposalsCountProvider);
-          ref.invalidate(clientCompletedCountProvider);
+          ref.invalidate(clientDashboardCountsProvider);
           ref.invalidate(profileProvider);
         },
         child: CustomScrollView(
@@ -123,11 +81,7 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                   const SizedBox(height: 24),
 
                   // ── Overview stats ──────────────────
-                  _OverviewSection(
-                    openCount: openCountAsync,
-                    proposalsCount: proposalsCountAsync,
-                    completedCount: completedCountAsync,
-                  ),
+                  _OverviewSection(counts: countsAsync),
 
                   const SizedBox(height: 28),
 
@@ -175,15 +129,9 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
 // Overview stats section (below the header, like freelancer home)
 // ─────────────────────────────────────────────────────────────
 class _OverviewSection extends StatelessWidget {
-  final AsyncValue<int> openCount;
-  final AsyncValue<int> proposalsCount;
-  final AsyncValue<int> completedCount;
+  final AsyncValue<ClientCounts> counts;
 
-  const _OverviewSection({
-    required this.openCount,
-    required this.proposalsCount,
-    required this.completedCount,
-  });
+  const _OverviewSection({required this.counts});
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +152,7 @@ class _OverviewSection extends StatelessWidget {
           child: Row(
             children: [
               _StatTile(
-                valueAsync: openCount,
+                valueAsync: counts.whenData((c) => c.open),
                 label: 'Open',
                 icon: Icons.work_outline,
                 iconColor: const Color(0xFF00A19B),
@@ -212,7 +160,7 @@ class _OverviewSection extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               _StatTile(
-                valueAsync: proposalsCount,
+                valueAsync: counts.whenData((c) => c.proposals),
                 label: 'Proposals',
                 icon: Icons.inbox_outlined,
                 iconColor: const Color(0xFF1565C0),
@@ -220,7 +168,7 @@ class _OverviewSection extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               _StatTile(
-                valueAsync: completedCount,
+                valueAsync: counts.whenData((c) => c.completed),
                 label: 'Done',
                 icon: Icons.verified_rounded,
                 iconColor: const Color(0xFF2E7D32),

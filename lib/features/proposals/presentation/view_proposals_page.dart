@@ -35,9 +35,7 @@ class ViewProposalsPage extends ConsumerWidget {
       ref.invalidate(myProposalsProvider);
       ref.invalidate(freelancerStatsProvider);
       // Bug 3: client home dashboard counts
-      ref.invalidate(clientProjectsCountProvider);
-      ref.invalidate(clientProposalsCountProvider);
-      ref.invalidate(clientCompletedCountProvider);
+      ref.invalidate(clientDashboardCountsProvider);
       // My Projects list — so a completed project moves to the Completed tab
       // (and an accepted one moves to In Progress) without needing a restart.
       ref.invalidate(clientProjectsProvider);

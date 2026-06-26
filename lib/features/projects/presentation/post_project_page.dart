@@ -166,9 +166,7 @@ class _PostProjectPageState extends ConsumerState<PostProjectPage> {
       // Refresh lists, dashboard counts and (in edit mode) the detail page.
       ref.invalidate(browseProjectsProvider);
       ref.invalidate(clientProjectsProvider);
-      ref.invalidate(clientProjectsCountProvider);
-      ref.invalidate(clientProposalsCountProvider);
-      ref.invalidate(clientCompletedCountProvider);
+      ref.invalidate(clientDashboardCountsProvider);
       if (_isEditMode) {
         ref.invalidate(projectDetailProvider(widget.projectId!));
         ref.invalidate(existingProposalProvider(widget.projectId!));

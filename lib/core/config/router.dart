@@ -26,6 +26,7 @@ import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/portfolio/presentation/manage_portfolio_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/legal/presentation/legal_page.dart';
+import '../../features/moderation/presentation/blocked_accounts_page.dart';
 import '../presentation/main_shell_page.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_provider.dart';
@@ -351,6 +352,16 @@ final routerProvider = Provider((ref) {
             title: 'Terms of Service',
             assetPath: 'docs/terms_of_service.md',
           ),
+        ),
+      ),
+
+      // ── Blocked accounts — SLIDE UP transition ─────────────
+      GoRoute(
+        path: '/settings/blocked',
+        pageBuilder: (context, state) => _slideUpPage(
+          context: context,
+          state: state,
+          child: const BlockedAccountsPage(),
         ),
       ),
 

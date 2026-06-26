@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/notifications/push_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../moderation/presentation/moderation_provider.dart';
 import 'messages_provider.dart';
 
 class ConversationsPage extends ConsumerWidget {
@@ -147,7 +148,15 @@ class ConversationsPage extends ConsumerWidget {
             ],
           ),
         ),
-        data: (conversations) {
+        data: (allConversations) {
+          // Hide conversations with blocked users.
+          final blockedIds = ref.watch(blockedUserIdsProvider).maybeWhen(
+                data: (s) => s,
+                orElse: () => const <String>{},
+              );
+          final conversations = allConversations
+              .where((c) => !blockedIds.contains(c.otherPersonId))
+              .toList();
           if (conversations.isEmpty) {
             return Center(
               child: Padding(

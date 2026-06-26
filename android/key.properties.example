@@ -1,0 +1,15 @@
+# Copy this file to `android/key.properties` (which is gitignored) and fill in
+# your real values after generating the release keystore. NEVER commit the real
+# key.properties or the .jks file.
+#
+# Generate the keystore (run from the android/ folder, keep the .jks safe):
+#   keytool -genkey -v -keystore lancr-release.jks -keyalg RSA -keysize 2048 \
+#           -validity 10000 -alias lancr
+#
+# storeFile is relative to the android/app/ folder, so ../lancr-release.jks
+# means android/lancr-release.jks.
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=lancr
+storeFile=../lancr-release.jks

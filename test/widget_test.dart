@@ -1,30 +1,51 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Smoke tests for derived providers (no network — providers are overridden).
 
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:lancr_app/main.dart';
+import 'package:lancr_app/features/proposals/presentation/my_proposals_provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const LancrApp());
+  test('myProposalStatsProvider counts by status and still counts archived',
+      () async {
+    final container = ProviderContainer(
+      overrides: [
+        myProposalsProvider.overrideWith((ref) async => [
+              {'status': 'pending', 'archived': false},
+              {'status': 'accepted', 'archived': false},
+              // archived completed must STILL be counted (stats are frozen).
+              {'status': 'completed', 'archived': true},
+              {'status': 'completed', 'archived': false},
+              {'status': 'rejected', 'archived': false},
+            ]),
+      ],
+    );
+    addTearDown(container.dispose);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Resolve the future the stats provider derives from.
+    await container.read(myProposalsProvider.future);
+    final stats = container.read(myProposalStatsProvider);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(stats['total'], 5);
+    expect(stats['pending'], 1);
+    expect(stats['accepted'], 1);
+    expect(stats['completed'], 2); // includes the archived one
+    expect(stats['rejected'], 1);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('myProposalStatsProvider is all-zero while loading', () {
+    final container = ProviderContainer(
+      overrides: [
+        // Never completes → provider stays in loading.
+        myProposalsProvider.overrideWith((ref) => Completer<
+            List<Map<String, dynamic>>>().future),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final stats = container.read(myProposalStatsProvider);
+    expect(stats['total'], 0);
+    expect(stats['completed'], 0);
   });
 }

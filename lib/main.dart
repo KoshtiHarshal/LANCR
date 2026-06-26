@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -22,9 +23,19 @@ void main() async {
 
   try {
     await Firebase.initializeApp();
+
+    // Route uncaught Flutter + async errors to Crashlytics for production
+    // crash visibility.
+    FlutterError.onError =
+        FirebaseCrashlytics.instance.recordFlutterFatalError;
+    WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+
     await PushService.init();
   } catch (e) {
-    debugPrint('Push init skipped: $e');
+    debugPrint('Firebase init skipped: $e');
   }
 
   runApp(const ProviderScope(child: LancrApp()));

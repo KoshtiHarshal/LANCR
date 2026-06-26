@@ -340,6 +340,11 @@ class SettingsPage extends ConsumerWidget {
                       'https://play.google.com/store/apps/details?id=$_playStoreId'),
                 ),
                 _SettingsTile(
+                  icon: Icons.block_outlined,
+                  title: 'Blocked accounts',
+                  onTap: () => context.push('/settings/blocked'),
+                ),
+                _SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: 'Privacy Policy',
                   onTap: () => context.push('/legal/privacy'),

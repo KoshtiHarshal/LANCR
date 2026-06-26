@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../moderation/presentation/moderation_provider.dart';
 import 'browse_projects_provider.dart';
 import 'saved_projects_provider.dart';
 
@@ -73,6 +74,10 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
     final searchQuery = ref.watch(searchQueryProvider);
     final sortOption = ref.watch(sortOptionProvider);
     final filters = ref.watch(filterProvider);
+    final blockedIds = ref.watch(blockedUserIdsProvider).maybeWhen(
+          data: (s) => s,
+          orElse: () => const <String>{},
+        );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -93,6 +98,8 @@ class _BrowseProjectsPageState extends ConsumerState<BrowseProjectsPage> {
 
           // Apply filters
           var filtered = projects.where((p) {
+            // Hide projects from blocked clients.
+            if (blockedIds.contains(p['client_id'])) return false;
             if (filters.status != 'all') {
               if ((p['status'] as String? ?? 'open') != filters.status) {
                 return false;
