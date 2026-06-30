@@ -26,9 +26,13 @@ The app is feature-complete for v1.0.0 (`com.lancr.app`), with real-time messagi
 
 A short screen recording of the app in action — posting, browsing, proposals, chat, and reviews.
 
-https://github.com/KoshtiHarshal/LANCR/raw/main/docs/media/demo.mp4
+<p align="center">
+  <a href="https://youtu.be/OkFR6o_GCK4">
+    <img src="https://img.youtube.com/vi/OkFR6o_GCK4/maxresdefault.jpg" alt="Watch the LANCR demo on YouTube" width="640">
+  </a>
+</p>
 
-> ▶️ If the player doesn't load inline, **[click here to watch the demo](docs/media/demo.mp4)**.
+> ▶️ **[Watch the demo on YouTube](https://youtu.be/OkFR6o_GCK4)**
 
 ---
 
