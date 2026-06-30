@@ -28,7 +28,7 @@ A short screen recording of the app in action — posting, browsing, proposals, 
 
 <p align="center">
   <a href="https://youtu.be/OkFR6o_GCK4">
-    <img src="https://img.youtube.com/vi/OkFR6o_GCK4/maxresdefault.jpg" alt="Watch the LANCR demo on YouTube" width="640">
+    <img src="https://img.youtube.com/vi/OkFR6o_GCK4/hqdefault.jpg" alt="Watch the LANCR demo on YouTube" width="480">
   </a>
 </p>
 
