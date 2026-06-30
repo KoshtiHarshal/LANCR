@@ -26,7 +26,7 @@ The app is feature-complete for v1.0.0 (`com.lancr.app`), with real-time messagi
 
 A short screen recording of the app in action — posting, browsing, proposals, chat, and reviews.
 
-https://github.com/KoshtiHarshal/lancr_app/raw/main/docs/media/demo.mp4
+https://github.com/KoshtiHarshal/LANCR/raw/main/docs/media/demo.mp4
 
 > ▶️ If the player doesn't load inline, **[click here to watch the demo](docs/media/demo.mp4)**.
 
@@ -261,8 +261,8 @@ lib/
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/KoshtiHarshal/lancr_app.git
-   cd lancr_app
+   git clone https://github.com/KoshtiHarshal/LANCR.git
+   cd LANCR
    ```
 
 2. **Install dependencies**
